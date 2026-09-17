@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Delivery - Vendor Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen pb-16">
+
+  <!-- Header -->
+  <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-xl">🏪</div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">FoodExpress Vendor Portal</h1>
+          <p class="text-xs text-indigo-100">Restaurant & Kitchen Management</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="vendor-select" class="bg-indigo-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 focus:outline-none">
+          <option value="">Select Vendor Profile</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Supabase Connection Config Bar -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs space-y-2">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-amber-900">⚡ Connect Your Supabase Database</span>
+        <span id="conn-status" class="font-bold text-rose-600">Disconnected</span>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input id="sb-url" type="text" placeholder="Supabase URL (https://xyz.supabase.co)" class="p-2 bg-white border border-amber-200 rounded flex-1">
+        <input id="sb-key" type="password" placeholder="Supabase Anon Key" class="p-2 bg-white border border-amber-200 rounded flex-1">
+        <button id="save-cfg-btn" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded">Connect DB</button>
+      </div>
+    </div>
+
+    <!-- Vendor Overview Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-slate-400 font-semibold">Total Revenue</span>
+        <p id="stat-revenue" class="text-xl font-bold text-slate-900">৳0</p>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-slate-400 font-semibold">Received Orders</span>
+        <p id="stat-orders" class="text-xl font-bold text-indigo-600">0</p>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-slate-400 font-semibold">Active Menu Dishes</span>
+        <p id="stat-dishes" class="text-xl font-bold text-emerald-600">0</p>
+      </div>
+    </div>
+
+    <!-- Kitchen Orders Section -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 shadow-xs">
+      <h2 class="text-base font-bold text-slate-900">Incoming Kitchen Orders</h2>
+      <div id="vendor-orders-list" class="space-y-3 text-xs">
+        <p class="text-slate-400 text-center py-6">Select a vendor profile to load kitchen orders.</p>
+      </div>
+    </div>
+
+    <!-- Menu Dishes Catalog Section -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 shadow-xs">
+      <div class="flex justify-between items-center">
+        <h2 class="text-base font-bold text-slate-900">Restaurant Menu Catalog</h2>
+        <button id="open-add-dish-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs">
+          + Add New Dish
+        </button>
+      </div>
+      <div id="vendor-dishes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+        <p class="text-slate-400 col-span-full text-center py-6">Select vendor profile to load menu dishes.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Add Dish Modal -->
+  <div id="dish-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl text-xs">
+      <h3 class="font-bold text-slate-900 text-sm">Add New Menu Dish</h3>
+      <div>
+        <label className="font-bold text-slate-700">Dish Name</label>
+        <input id="dish-name" type="text" placeholder="e.g. Cheese Burger" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg">
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label className="font-bold text-slate-700">Price (৳)</label>
+          <input id="dish-price" type="number" value="150" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg">
+        </div>
+        <div>
+          <label className="font-bold text-slate-700">Category</label>
+          <input id="dish-cat" type="text" value="Fast Food" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg">
+        </div>
+      </div>
+      <div>
+        <label className="font-bold text-slate-700">Description</label>
+        <textarea id="dish-desc" rows="2" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg"></textarea>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button id="close-modal-btn" class="flex-1 bg-slate-100 text-slate-700 font-bold py-2 rounded-lg">Cancel</button>
+        <button id="save-dish-btn" class="flex-1 bg-indigo-600 text-white font-bold py-2 rounded-lg">Save Dish</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let supabaseClient = null;
+    let vendors = [];
+    let currentVendorId = null;
+
+    const sbUrlInput = document.getElementById('sb-url');
+    const sbKeyInput = document.getElementById('sb-key');
+    const connStatus = document.getElementById('conn-status');
+
+    sbUrlInput.value = localStorage.getItem('food_sys_supabase_url') || '';
+    sbKeyInput.value = localStorage.getItem('food_sys_supabase_key') || '';
+
+    function initSupabase() {
+      const u = sbUrlInput.value.trim();
+      const k = sbKeyInput.value.trim();
+
+      if (u && k) {
+        try {
+          supabaseClient = window.supabase.createClient(u, k);
+          localStorage.setItem('food_sys_supabase_url', u);
+          localStorage.setItem('food_sys_supabase_key', k);
+          connStatus.innerText = 'Connected';
+          connStatus.className = 'font-bold text-emerald-600';
+          loadVendors();
+        } catch (e) {
+          connStatus.innerText = 'Error';
+          connStatus.className = 'font-bold text-rose-600';
+        }
+      }
+    }
+
+    document.getElementById('save-cfg-btn').addEventListener('click', initSupabase);
+
+    async function loadVendors() {
+      if (!supabaseClient) return;
+      const { data } = await supabaseClient.from('vendors').select('*');
+      const select = document.getElementById('vendor-select');
+      select.innerHTML = '<option value="">Select Vendor Profile</option>';
+
+      if (data) {
+        vendors = data;
+        data.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.id;
+          opt.innerText = v.name;
+          select.appendChild(opt);
+        });
+      }
+    }
+
+    document.getElementById('vendor-select').addEventListener('change', e => {
+      currentVendorId = Number(e.target.value);
+      if (currentVendorId) loadVendorData();
+    });
+
+    async function loadVendorData() {
+      if (!supabaseClient || !currentVendorId) return;
+
+      // Load Orders
+      const { data: oData } = await supabaseClient.from('orders').select('*').eq('vendor_id', currentVendorId);
+      const ordersContainer = document.getElementById('vendor-orders-list');
+      ordersContainer.innerHTML = '';
+
+      if (oData && oData.length > 0) {
+        document.getElementById('stat-orders').innerText = oData.length;
+        const totalRevenue = oData.reduce((sum, o) => sum + (o.amount || 0), 0);
+        document.getElementById('stat-revenue').innerText = '৳' + totalRevenue;
+
+        oData.forEach(o => {
+          const div = document.createElement('div');
+          div.className = 'p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2';
+          div.innerHTML = `
+            <div class="flex justify-between items-center font-bold">
+              <span>Order #${o.id} - ${o.customer_name || 'Customer'}</span>
+              <span class="text-indigo-700">৳${o.amount}</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-500">
+              <span>Status: <strong class="text-indigo-900">${o.status}</strong></span>
+              <select onchange="updateOrderStatus(${o.id}, this.value)" class="p-1 bg-white border rounded text-xs">
+                <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                <option value="Preparing" ${o.status === 'Preparing' ? 'selected' : ''}>Preparing</option>
+                <option value="Ready for Pickup" ${o.status === 'Ready for Pickup' ? 'selected' : ''}>Ready for Pickup</option>
+                <option value="Delivered" ${o.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+              </select>
+            </div>
+          `;
+          ordersContainer.appendChild(div);
+        });
+      } else {
+        ordersContainer.innerHTML = '<p class="text-slate-400 text-center py-4">No orders received yet.</p>';
+      }
+
+      // Load Menus
+      const { data: mData } = await supabaseClient.from('menus').select('*').eq('vendor_id', currentVendorId);
+      const dishesGrid = document.getElementById('vendor-dishes-grid');
+      dishesGrid.innerHTML = '';
+
+      if (mData) {
+        document.getElementById('stat-dishes').innerText = mData.length;
+        mData.forEach(m => {
+          const card = document.createElement('div');
+          card.className = 'p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1';
+          card.innerHTML = `
+            <div class="flex justify-between font-bold">
+              <span>${m.name}</span>
+              <span class="text-indigo-700">৳${m.price}</span>
+            </div>
+            <p class="text-slate-500">${m.description || ''}</p>
+          `;
+          dishesGrid.appendChild(card);
+        });
+      }
+    }
+
+    async function updateOrderStatus(orderId, status) {
+      if (!supabaseClient) return;
+      await supabaseClient.from('orders').update({ status }).eq('id', orderId);
+      loadVendorData();
+    }
+
+    document.getElementById('open-add-dish-btn').onclick = () => document.getElementById('dish-modal').classList.remove('hidden');
+    document.getElementById('close-modal-btn').onclick = () => document.getElementById('dish-modal').classList.add('hidden');
+
+    document.getElementById('save-dish-btn').onclick = async () => {
+      const name = document.getElementById('dish-name').value;
+      const price = Number(document.getElementById('dish-price').value);
+      const category = document.getElementById('dish-cat').value;
+      const description = document.getElementById('dish-desc').value;
+
+      if (!name || !price || !currentVendorId) return alert('Fill name, price and select vendor!');
+
+      if (supabaseClient) {
+        await supabaseClient.from('menus').insert([{
+          vendor_id: currentVendorId,
+          name,
+          price,
+          category,
+          description,
+          available: true,
+          status: 'Active'
+        }]);
+      }
+
+      document.getElementById('dish-modal').classList.add('hidden');
+      loadVendorData();
+    };
+
+    if (sbUrlInput.value && sbKeyInput.value) initSupabase();
+  </script>
+</body>
+</html>

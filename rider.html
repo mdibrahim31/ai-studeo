@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Delivery - Rider Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen pb-16">
+
+  <!-- Header -->
+  <header class="bg-sky-700 text-white shadow-md sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-xl">🛵</div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">FoodExpress Rider Portal</h1>
+          <p class="text-xs text-sky-100">Live Delivery Route & Tracking</p>
+        </div>
+      </div>
+      <select id="rider-select" class="bg-sky-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-sky-500 focus:outline-none">
+        <option value="">Select Rider Profile</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Supabase Connection Config Bar -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs space-y-2">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-amber-900">⚡ Connect Your Supabase Database</span>
+        <span id="conn-status" class="font-bold text-rose-600">Disconnected</span>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input id="sb-url" type="text" placeholder="Supabase URL (https://xyz.supabase.co)" class="p-2 bg-white border border-amber-200 rounded flex-1">
+        <input id="sb-key" type="password" placeholder="Supabase Anon Key" class="p-2 bg-white border border-amber-200 rounded flex-1">
+        <button id="save-cfg-btn" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded">Connect DB</button>
+      </div>
+    </div>
+
+    <!-- GPS Location Sync Panel -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-3 text-xs shadow-xs">
+      <div class="flex justify-between items-center">
+        <h2 class="font-bold text-slate-900 text-sm">Rider Live GPS Coordinates</h2>
+        <span id="duty-badge" class="bg-slate-100 text-slate-600 font-bold px-2.5 py-0.5 rounded">Duty Status: Offline</span>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-slate-500">Latitude</label>
+          <input id="rider-lat" type="number" step="0.0001" value="23.7910" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg">
+        </div>
+        <div>
+          <label className="text-slate-500">Longitude</label>
+          <input id="rider-long" type="number" step="0.0001" value="90.4060" class="w-full mt-1 p-2 bg-slate-50 border rounded-lg">
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button id="toggle-duty-btn" class="flex-1 bg-emerald-600 text-white font-bold py-2 rounded-lg">Toggle Online/Offline</button>
+        <button id="update-gps-btn" class="flex-1 bg-sky-600 text-white font-bold py-2 rounded-lg">Update Location</button>
+      </div>
+    </div>
+
+    <!-- Available Delivery Requests -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs shadow-xs">
+      <h2 class="font-bold text-slate-900 text-sm">Available Delivery Requests</h2>
+      <div id="deliveries-list" class="space-y-3 divide-y divide-slate-100">
+        <p class="text-slate-400 text-center py-6">Select a rider profile to view delivery requests.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let supabaseClient = null;
+    let riders = [];
+    let currentRiderId = null;
+
+    const sbUrlInput = document.getElementById('sb-url');
+    const sbKeyInput = document.getElementById('sb-key');
+    const connStatus = document.getElementById('conn-status');
+
+    sbUrlInput.value = localStorage.getItem('food_sys_supabase_url') || '';
+    sbKeyInput.value = localStorage.getItem('food_sys_supabase_key') || '';
+
+    function initSupabase() {
+      const u = sbUrlInput.value.trim();
+      const k = sbKeyInput.value.trim();
+
+      if (u && k) {
+        try {
+          supabaseClient = window.supabase.createClient(u, k);
+          localStorage.setItem('food_sys_supabase_url', u);
+          localStorage.setItem('food_sys_supabase_key', k);
+          connStatus.innerText = 'Connected';
+          connStatus.className = 'font-bold text-emerald-600';
+          loadRiders();
+        } catch (e) {
+          connStatus.innerText = 'Error';
+          connStatus.className = 'font-bold text-rose-600';
+        }
+      }
+    }
+
+    document.getElementById('save-cfg-btn').addEventListener('click', initSupabase);
+
+    async function loadRiders() {
+      if (!supabaseClient) return;
+      const { data } = await supabaseClient.from('riders').select('*');
+      const select = document.getElementById('rider-select');
+      select.innerHTML = '<option value="">Select Rider Profile</option>';
+
+      if (data) {
+        riders = data;
+        data.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.id;
+          opt.innerText = r.name + ' (' + r.phone + ')';
+          select.appendChild(opt);
+        });
+      }
+    }
+
+    document.getElementById('rider-select').addEventListener('change', e => {
+      currentRiderId = Number(e.target.value);
+      if (currentRiderId) {
+        const r = riders.find(x => x.id === currentRiderId);
+        if (r) {
+          document.getElementById('duty-badge').innerText = 'Duty Status: ' + r.status;
+          document.getElementById('rider-lat').value = r.live_lat || 23.7910;
+          document.getElementById('rider-long').value = r.live_long || 90.4060;
+        }
+        loadOrders();
+      }
+    });
+
+    async function loadOrders() {
+      if (!supabaseClient) return;
+      const { data } = await supabaseClient.from('orders').select('*');
+      const container = document.getElementById('deliveries-list');
+      container.innerHTML = '';
+
+      if (data && data.length > 0) {
+        data.forEach(o => {
+          const div = document.createElement('div');
+          div.className = 'py-3 flex justify-between items-center';
+          div.innerHTML = `
+            <div>
+              <p class="font-bold text-slate-900">Order #${o.id} - ${o.vendor_name || 'Vendor'}</p>
+              <p class="text-slate-500">Customer: ${o.customer_name || 'N/A'}</p>
+              <p class="text-emerald-700 font-bold">৳${o.amount}</p>
+            </div>
+            <button onclick="acceptOrder(${o.id})" class="bg-sky-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs">
+              Accept Delivery
+            </button>
+          `;
+          container.appendChild(div);
+        });
+      } else {
+        container.innerHTML = '<p class="text-slate-400 text-center py-4">No active delivery requests.</p>';
+      }
+    }
+
+    async function acceptOrder(orderId) {
+      if (!supabaseClient || !currentRiderId) return alert('Select rider profile first!');
+      await supabaseClient.from('orders').update({ rider_id: currentRiderId, status: 'Preparing' }).eq('id', orderId);
+      alert('Order accepted!');
+      loadOrders();
+    }
+
+    document.getElementById('toggle-duty-btn').onclick = async () => {
+      if (!supabaseClient || !currentRiderId) return alert('Select rider profile first!');
+      const r = riders.find(x => x.id === currentRiderId);
+      const nextStatus = r && r.status === 'Online' ? 'Offline' : 'Online';
+      await supabaseClient.from('riders').update({ status: nextStatus }).eq('id', currentRiderId);
+      document.getElementById('duty-badge').innerText = 'Duty Status: ' + nextStatus;
+      loadRiders();
+    };
+
+    document.getElementById('update-gps-btn').onclick = async () => {
+      if (!supabaseClient || !currentRiderId) return alert('Select rider profile first!');
+      const lat = Number(document.getElementById('rider-lat').value);
+      const long = Number(document.getElementById('rider-long').value);
+      await supabaseClient.from('riders').update({ live_lat: lat, live_long: long }).eq('id', currentRiderId);
+      alert('GPS location updated!');
+    };
+
+    if (sbUrlInput.value && sbKeyInput.value) initSupabase();
+  </script>
+</body>
+</html>

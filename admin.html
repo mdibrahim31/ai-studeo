@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Delivery - Admin Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen pb-16">
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center font-bold text-xl text-slate-950">🛡️</div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">FoodExpress Admin Dashboard</h1>
+          <p class="text-xs text-slate-400">System Control & Database Management</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Supabase Connection Config Bar -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs space-y-2">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-amber-900">⚡ Connect Your Supabase Database</span>
+        <span id="conn-status" class="font-bold text-rose-600">Disconnected</span>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input id="sb-url" type="text" placeholder="Supabase URL (https://xyz.supabase.co)" class="p-2 bg-white border border-amber-200 rounded flex-1">
+        <input id="sb-key" type="password" placeholder="Supabase Anon Key" class="p-2 bg-white border border-amber-200 rounded flex-1">
+        <button id="save-cfg-btn" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded">Connect DB</button>
+      </div>
+    </div>
+
+    <!-- Overview Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-slate-400 font-semibold">Total Vendors</span>
+        <p id="stat-vendors" class="text-xl font-bold text-slate-900">0</p>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-slate-400 font-semibold">Active Riders</span>
+        <p id="stat-riders" class="text-xl font-bold text-emerald-600">0</p>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-slate-400 font-semibold">Total System Orders</span>
+        <p id="stat-orders" class="text-xl font-bold text-indigo-600">0</p>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <span class="text-slate-400 font-semibold">Helplines</span>
+        <p id="stat-helplines" class="text-xl font-bold text-amber-600">0</p>
+      </div>
+    </div>
+
+    <!-- Live System Orders Table -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs shadow-xs">
+      <h2 class="font-bold text-slate-900 text-sm">System Live Orders</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-100 font-bold">
+            <tr>
+              <th className="p-2">ID</th>
+              <th className="p-2">Customer</th>
+              <th className="p-2">Vendor</th>
+              <th className="p-2">Amount</th>
+              <th className="p-2">Status</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody" class="divide-y divide-slate-100">
+            <tr><td colspan="5" class="p-4 text-center text-slate-400">Connect Supabase to load live orders.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Customer Helpline Management -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs shadow-xs max-w-xl">
+      <h2 class="font-bold text-slate-900 text-sm">Manage Customer Service Helplines</h2>
+      <div class="flex gap-2">
+        <input id="helpline-phone" type="text" placeholder="e.g. +8801700112233" class="p-2 bg-slate-50 border rounded-lg flex-1">
+        <button id="add-helpline-btn" class="bg-slate-900 text-white font-bold px-4 py-2 rounded-lg">Add Helpline</button>
+      </div>
+      <div id="helpline-list" class="divide-y divide-slate-100">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let supabaseClient = null;
+
+    const sbUrlInput = document.getElementById('sb-url');
+    const sbKeyInput = document.getElementById('sb-key');
+    const connStatus = document.getElementById('conn-status');
+
+    sbUrlInput.value = localStorage.getItem('food_sys_supabase_url') || '';
+    sbKeyInput.value = localStorage.getItem('food_sys_supabase_key') || '';
+
+    function initSupabase() {
+      const u = sbUrlInput.value.trim();
+      const k = sbKeyInput.value.trim();
+
+      if (u && k) {
+        try {
+          supabaseClient = window.supabase.createClient(u, k);
+          localStorage.setItem('food_sys_supabase_url', u);
+          localStorage.setItem('food_sys_supabase_key', k);
+          connStatus.innerText = 'Connected';
+          connStatus.className = 'font-bold text-emerald-600';
+          loadAdminData();
+        } catch (e) {
+          connStatus.innerText = 'Error';
+          connStatus.className = 'font-bold text-rose-600';
+        }
+      }
+    }
+
+    document.getElementById('save-cfg-btn').addEventListener('click', initSupabase);
+
+    async function loadAdminData() {
+      if (!supabaseClient) return;
+
+      const { data: v } = await supabaseClient.from('vendors').select('*');
+      if (v) document.getElementById('stat-vendors').innerText = v.length;
+
+      const { data: r } = await supabaseClient.from('riders').select('*');
+      if (r) document.getElementById('stat-riders').innerText = r.length;
+
+      const { data: o } = await supabaseClient.from('orders').select('*');
+      if (o) {
+        document.getElementById('stat-orders').innerText = o.length;
+        const tbody = document.getElementById('orders-tbody');
+        tbody.innerHTML = '';
+        o.forEach(ord => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="p-2 font-bold">#${ord.id}</td>
+            <td class="p-2">${ord.customer_name || 'N/A'}</td>
+            <td class="p-2">${ord.vendor_name || 'N/A'}</td>
+            <td class="p-2 font-bold text-emerald-700">৳${ord.amount}</td>
+            <td class="p-2"><span class="bg-slate-100 font-bold px-2 py-0.5 rounded text-[10px]">${ord.status}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      const { data: h } = await supabaseClient.from('customer_service').select('*');
+      if (h) {
+        document.getElementById('stat-helplines').innerText = h.length;
+        const list = document.getElementById('helpline-list');
+        list.innerHTML = '';
+        h.forEach(cs => {
+          const div = document.createElement('div');
+          div.className = 'py-2 flex justify-between items-center';
+          div.innerHTML = `
+            <span class="font-bold">${cs.phone}</span>
+            <button onclick="deleteHelpline(${cs.id})" class="text-rose-600 font-bold">Delete</button>
+          `;
+          list.appendChild(div);
+        });
+      }
+    }
+
+    document.getElementById('add-helpline-btn').onclick = async () => {
+      const phone = document.getElementById('helpline-phone').value;
+      if (!phone || !supabaseClient) return;
+      await supabaseClient.from('customer_service').insert([{ phone }]);
+      document.getElementById('helpline-phone').value = '';
+      loadAdminData();
+    };
+
+    async function deleteHelpline(id) {
+      if (!supabaseClient) return;
+      await supabaseClient.from('customer_service').delete().eq('id', id);
+      loadAdminData();
+    }
+
+    if (sbUrlInput.value && sbKeyInput.value) initSupabase();
+  </script>
+</body>
+</html>

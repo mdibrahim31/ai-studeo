@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Delivery - Customer Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen pb-16">
+
+  <!-- Header -->
+  <header class="bg-emerald-600 text-white shadow-md sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-xl">🍔</div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">FoodExpress Customer</h1>
+          <p class="text-xs text-emerald-100">Order from top local restaurants</p>
+        </div>
+      </div>
+      <button id="open-cart-btn" class="bg-white text-emerald-700 px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-emerald-50">
+        🛒 Basket (<span id="cart-count">0</span>)
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Supabase Connection Config Bar -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs space-y-2">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-amber-900">⚡ Connect Your Supabase Database</span>
+        <span id="conn-status" class="font-bold text-rose-600">Disconnected</span>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input id="sb-url" type="text" placeholder="Supabase URL (https://xyz.supabase.co)" class="p-2 bg-white border border-amber-200 rounded flex-1">
+        <input id="sb-key" type="password" placeholder="Supabase Anon Key" class="p-2 bg-white border border-amber-200 rounded flex-1">
+        <button id="save-cfg-btn" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded">Connect DB</button>
+      </div>
+    </div>
+
+    <!-- Customer Helpline Bar -->
+    <div id="helpline-bar" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 flex justify-between items-center shadow-xs">
+      <span>📞 Customer Support Helpline: <strong id="helpline-phones">Loading...</strong></span>
+      <span class="bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded">24/7 Support</span>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <input id="search-input" type="text" placeholder="Search restaurants or food items..." class="w-full sm:w-80 p-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      <div id="category-filters" class="flex gap-2 overflow-x-auto w-full sm:w-auto pb-1">
+        <!-- Category pills generated via JS -->
+      </div>
+    </div>
+
+    <!-- Vendor Restaurants Section -->
+    <div id="vendors-section">
+      <h2 class="text-base font-bold text-slate-900 mb-3">Featured Restaurants</h2>
+      <div id="vendors-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <p class="text-xs text-slate-400 col-span-full py-6 text-center">Loading restaurants...</p>
+      </div>
+    </div>
+
+    <!-- Vendor Menu Section -->
+    <div id="menu-section" class="hidden space-y-4">
+      <button id="back-vendors-btn" class="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 hover:bg-emerald-100">
+        ← Back to All Restaurants
+      </button>
+
+      <div id="vendor-banner" class="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col sm:flex-row gap-4 items-start shadow-xs">
+        <!-- Dynamic Vendor Info -->
+      </div>
+
+      <h3 class="text-base font-bold text-slate-900">Menu Items</h3>
+      <div id="menus-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Menu Items generated via JS -->
+      </div>
+    </div>
+
+    <!-- Active Orders Section -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-3 shadow-xs">
+      <h2 class="text-base font-bold text-slate-900">My Recent Orders</h2>
+      <div id="orders-list" class="divide-y divide-slate-100 text-xs">
+        <p class="text-slate-400 py-3">No recent orders found.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Cart Modal Drawer -->
+  <div id="cart-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex justify-end">
+    <div class="w-full max-w-md bg-white h-full flex flex-col shadow-2xl">
+      <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+        <h3 class="font-bold text-slate-900 text-sm">Your Food Basket</h3>
+        <button id="close-cart-btn" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+      </div>
+
+      <div id="cart-items" class="p-4 flex-1 overflow-y-auto space-y-3 text-xs">
+        <p class="text-slate-400 text-center py-8">Your cart is empty.</p>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 bg-slate-50 space-y-3">
+        <div class="flex justify-between font-bold text-slate-900 text-sm">
+          <span>Total:</span>
+          <span id="cart-total" class="text-emerald-700">৳0</span>
+        </div>
+        <button id="checkout-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-xs">
+          Confirm Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Single File Logic -->
+  <script>
+    let supabaseClient = null;
+    let vendors = [];
+    let menus = [];
+    let orders = [];
+    let cart = [];
+    let selectedVendor = null;
+
+    const sbUrlInput = document.getElementById('sb-url');
+    const sbKeyInput = document.getElementById('sb-key');
+    const connStatus = document.getElementById('conn-status');
+
+    // Load Credentials from LocalStorage
+    sbUrlInput.value = localStorage.getItem('food_sys_supabase_url') || '';
+    sbKeyInput.value = localStorage.getItem('food_sys_supabase_key') || '';
+
+    function initSupabase() {
+      const u = sbUrlInput.value.trim();
+      const k = sbKeyInput.value.trim();
+
+      if (u && k) {
+        try {
+          supabaseClient = window.supabase.createClient(u, k);
+          localStorage.setItem('food_sys_supabase_url', u);
+          localStorage.setItem('food_sys_supabase_key', k);
+          connStatus.innerText = 'Connected';
+          connStatus.className = 'font-bold text-emerald-600';
+          fetchAllData();
+        } catch (e) {
+          connStatus.innerText = 'Connection Error';
+          connStatus.className = 'font-bold text-rose-600';
+        }
+      }
+    }
+
+    document.getElementById('save-cfg-btn').addEventListener('click', initSupabase);
+
+    async function fetchAllData() {
+      if (!supabaseClient) return;
+
+      // Fetch Vendors
+      const { data: vData } = await supabaseClient.from('vendors').select('*');
+      if (vData) vendors = vData;
+
+      // Fetch Menus
+      const { data: mData } = await supabaseClient.from('menus').select('*');
+      if (mData) menus = mData;
+
+      // Fetch Orders
+      const { data: oData } = await supabaseClient.from('orders').select('*').order('id', { ascending: false });
+      if (oData) orders = oData;
+
+      // Fetch Customer Service Phone Numbers
+      const { data: csData } = await supabaseClient.from('customer_service').select('*');
+      if (csData && csData.length > 0) {
+        document.getElementById('helpline-bar').classList.remove('hidden');
+        document.getElementById('helpline-phones').innerText = csData.map(c => c.phone).join(' | ');
+      }
+
+      renderVendors();
+      renderOrders();
+    }
+
+    function renderVendors() {
+      const grid = document.getElementById('vendors-grid');
+      const search = document.getElementById('search-input').value.toLowerCase();
+      grid.innerHTML = '';
+
+      const filtered = vendors.filter(v => 
+        v.name.toLowerCase().includes(search) || (v.types && v.types.toLowerCase().includes(search))
+      );
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<p class="text-xs text-slate-400 py-6 col-span-full text-center">No vendors found.</p>';
+        return;
+      }
+
+      filtered.forEach(v => {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition cursor-pointer p-4 space-y-2';
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <h3 class="font-bold text-slate-900 text-sm">${v.name}</h3>
+            ${v.boost ? '<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded">Featured</span>' : ''}
+          </div>
+          <p class="text-xs text-slate-500">${v.address || 'Location unavailable'}</p>
+          <div class="flex justify-between items-center text-xs pt-2 border-t border-slate-100">
+            <span class="text-emerald-700 font-bold">${v.types || 'Restaurant'}</span>
+            <span class="text-xs text-slate-400">${v.discount > 0 ? v.discount + '% OFF' : ''}</span>
+          </div>
+        `;
+        card.onclick = () => openVendorMenu(v);
+        grid.appendChild(card);
+      });
+    }
+
+    document.getElementById('search-input').addEventListener('input', renderVendors);
+
+    function openVendorMenu(vendor) {
+      selectedVendor = vendor;
+      document.getElementById('vendors-section').classList.add('hidden');
+      document.getElementById('menu-section').classList.remove('hidden');
+
+      const banner = document.getElementById('vendor-banner');
+      banner.innerHTML = `
+        <div class="flex-1 space-y-1">
+          <h2 class="text-xl font-bold text-slate-900">${vendor.name}</h2>
+          <p class="text-xs text-slate-500">${vendor.address || ''}</p>
+          <span class="inline-block bg-emerald-50 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded">${vendor.types}</span>
+        </div>
+      `;
+
+      renderMenus();
+    }
+
+    document.getElementById('back-vendors-btn').addEventListener('click', () => {
+      document.getElementById('vendors-section').classList.remove('hidden');
+      document.getElementById('menu-section').classList.add('hidden');
+    });
+
+    function renderMenus() {
+      const grid = document.getElementById('menus-grid');
+      grid.innerHTML = '';
+      if (!selectedVendor) return;
+
+      const vendorMenus = menus.filter(m => m.vendor_id === selectedVendor.id);
+
+      if (vendorMenus.length === 0) {
+        grid.innerHTML = '<p class="text-xs text-slate-400 col-span-full py-4 text-center">No menu items found for this restaurant.</p>';
+        return;
+      }
+
+      vendorMenus.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'bg-white rounded-xl border border-slate-200 p-4 space-y-3 flex flex-col justify-between';
+        item.innerHTML = `
+          <div>
+            <div class="flex justify-between items-start">
+              <h4 class="font-bold text-slate-900 text-sm">${m.name}</h4>
+              <span class="font-bold text-emerald-700 text-sm">৳${m.price}</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">${m.description || ''}</p>
+          </div>
+          <button onclick="addToCart(${m.id})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-xs">
+            Add to Basket +
+          </button>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    function addToCart(menuId) {
+      const m = menus.find(x => x.id === menuId);
+      if (!m) return;
+
+      const existing = cart.find(c => c.menu_id === menuId);
+      if (existing) {
+        existing.quantity += 1;
+        existing.subtotal = existing.quantity * existing.price;
+      } else {
+        cart.push({ menu_id: m.id, name: m.name, price: m.price, quantity: 1, subtotal: m.price });
+      }
+
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      document.getElementById('cart-count').innerText = cart.reduce((a, b) => a + b.quantity, 0);
+      const itemsContainer = document.getElementById('cart-items');
+      itemsContainer.innerHTML = '';
+
+      if (cart.length === 0) {
+        itemsContainer.innerHTML = '<p class="text-slate-400 text-center py-8">Your cart is empty.</p>';
+        document.getElementById('cart-total').innerText = '৳0';
+        return;
+      }
+
+      let total = 0;
+      cart.forEach(item => {
+        total += item.subtotal;
+        const div = document.createElement('div');
+        div.className = 'p-3 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center';
+        div.innerHTML = `
+          <div>
+            <p class="font-bold text-slate-900">${item.name}</p>
+            <p class="text-slate-500">৳${item.price} x ${item.quantity}</p>
+          </div>
+          <span class="font-bold text-emerald-700">৳${item.subtotal}</span>
+        `;
+        itemsContainer.appendChild(div);
+      });
+
+      document.getElementById('cart-total').innerText = '৳' + total;
+    }
+
+    document.getElementById('open-cart-btn').onclick = () => document.getElementById('cart-modal').classList.remove('hidden');
+    document.getElementById('close-cart-btn').onclick = () => document.getElementById('cart-modal').classList.add('hidden');
+
+    document.getElementById('checkout-btn').onclick = async () => {
+      if (cart.length === 0 || !selectedVendor) return alert('Your cart is empty!');
+
+      const total = cart.reduce((a, b) => a + b.subtotal, 0);
+      const newOrder = {
+        vendor_id: selectedVendor.id,
+        customer_name: 'Anika Rahman',
+        vendor_name: selectedVendor.name,
+        items: cart,
+        amount: total,
+        status: 'Pending',
+        time: new Date().toISOString()
+      };
+
+      if (supabaseClient) {
+        await supabaseClient.from('orders').insert([newOrder]);
+      }
+
+      alert('Order placed successfully!');
+      cart = [];
+      updateCartUI();
+      document.getElementById('cart-modal').classList.add('hidden');
+      fetchAllData();
+    };
+
+    function renderOrders() {
+      const container = document.getElementById('orders-list');
+      container.innerHTML = '';
+
+      if (orders.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 py-3">No recent orders found.</p>';
+        return;
+      }
+
+      orders.forEach(o => {
+        const div = document.createElement('div');
+        div.className = 'py-2 flex justify-between items-center';
+        div.innerHTML = `
+          <div>
+            <p class="font-bold text-slate-900">Order #${o.id} - ${o.vendor_name || 'Vendor'}</p>
+            <p class="text-slate-400 text-[11px]">${new Date(o.time).toLocaleString()}</p>
+          </div>
+          <div class="text-right">
+            <span class="font-bold text-emerald-700 block">৳${o.amount}</span>
+            <span class="bg-slate-100 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded">${o.status}</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    if (sbUrlInput.value && sbKeyInput.value) initSupabase();
+  </script>
+</body>
+</html>
