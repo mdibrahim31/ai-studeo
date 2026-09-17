@@ -30,6 +30,7 @@
         <span class="font-bold text-amber-900">⚡ Connect Your Supabase Database</span>
         <span id="conn-status" class="font-bold text-rose-600">Disconnected</span>
       </div>
+      <p class="text-[11px] text-amber-800">You can paste your Supabase credentials below or edit the JS variables in the code:</p>
       <div class="flex flex-col sm:flex-row gap-2">
         <input id="sb-url" type="text" placeholder="Supabase URL (https://xyz.supabase.co)" class="p-2 bg-white border border-amber-200 rounded flex-1">
         <input id="sb-key" type="password" placeholder="Supabase Anon Key" class="p-2 bg-white border border-amber-200 rounded flex-1">
@@ -93,14 +94,21 @@
   </main>
 
   <script>
+    // =========================================================================
+    // 🔑 ADD YOUR SUPABASE CREDENTIALS HERE OR USE THE UI INPUTS AT THE TOP
+    // =========================================================================
+    const SUPABASE_URL = "";       // e.g. "https://xyz.supabase.co"
+    const SUPABASE_ANON_KEY = "";  // e.g. "eyJhbGciOiJIUzI1NiIsIn..."
+    // =========================================================================
+
     let supabaseClient = null;
 
     const sbUrlInput = document.getElementById('sb-url');
     const sbKeyInput = document.getElementById('sb-key');
     const connStatus = document.getElementById('conn-status');
 
-    sbUrlInput.value = localStorage.getItem('food_sys_supabase_url') || '';
-    sbKeyInput.value = localStorage.getItem('food_sys_supabase_key') || '';
+    sbUrlInput.value = localStorage.getItem('food_sys_supabase_url') || SUPABASE_URL || '';
+    sbKeyInput.value = localStorage.getItem('food_sys_supabase_key') || SUPABASE_ANON_KEY || '';
 
     function initSupabase() {
       const u = sbUrlInput.value.trim();
@@ -156,8 +164,7 @@
         const list = document.getElementById('helpline-list');
         list.innerHTML = '';
         h.forEach(cs => {
-          const div = document.createElement('div');
-          div.className = 'py-2 flex justify-between items-center';
+          const div = document.className = 'py-2 flex justify-between items-center';
           div.innerHTML = `
             <span class="font-bold">${cs.phone}</span>
             <button onclick="deleteHelpline(${cs.id})" class="text-rose-600 font-bold">Delete</button>

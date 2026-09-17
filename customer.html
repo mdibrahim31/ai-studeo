@@ -36,13 +36,14 @@
     <!-- Supabase Connection Config Bar -->
     <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs space-y-2">
       <div class="flex justify-between items-center">
-        <span class="font-bold text-amber-900">⚡ Connect Your Supabase Database</span>
+        <span class="font-bold text-amber-900">⚡ Supabase Database Connection</span>
         <span id="conn-status" class="font-bold text-rose-600">Disconnected</span>
       </div>
+      <p class="text-[11px] text-amber-800">You can paste your Supabase credentials below or edit the JS variables in the code:</p>
       <div class="flex flex-col sm:flex-row gap-2">
         <input id="sb-url" type="text" placeholder="Supabase URL (https://xyz.supabase.co)" class="p-2 bg-white border border-amber-200 rounded flex-1">
         <input id="sb-key" type="password" placeholder="Supabase Anon Key" class="p-2 bg-white border border-amber-200 rounded flex-1">
-        <button id="save-cfg-btn" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded">Connect DB</button>
+        <button id="save-cfg-btn" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded">Save & Connect</button>
       </div>
     </div>
 
@@ -52,12 +53,9 @@
       <span class="bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded">24/7 Support</span>
     </div>
 
-    <!-- Search & Filter Bar -->
+    <!-- Search Bar -->
     <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
       <input id="search-input" type="text" placeholder="Search restaurants or food items..." class="w-full sm:w-80 p-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
-      <div id="category-filters" class="flex gap-2 overflow-x-auto w-full sm:w-auto pb-1">
-        <!-- Category pills generated via JS -->
-      </div>
     </div>
 
     <!-- Vendor Restaurants Section -->
@@ -120,6 +118,13 @@
 
   <!-- JavaScript Single File Logic -->
   <script>
+    // =========================================================================
+    // 🔑 ADD YOUR SUPABASE CREDENTIALS HERE OR USE THE UI INPUTS AT THE TOP
+    // =========================================================================
+    const SUPABASE_URL = "";       // e.g. "https://xyz.supabase.co"
+    const SUPABASE_ANON_KEY = "";  // e.g. "eyJhbGciOiJIUzI1NiIsIn..."
+    // =========================================================================
+
     let supabaseClient = null;
     let vendors = [];
     let menus = [];
@@ -131,9 +136,9 @@
     const sbKeyInput = document.getElementById('sb-key');
     const connStatus = document.getElementById('conn-status');
 
-    // Load Credentials from LocalStorage
-    sbUrlInput.value = localStorage.getItem('food_sys_supabase_url') || '';
-    sbKeyInput.value = localStorage.getItem('food_sys_supabase_key') || '';
+    // Load Credentials from Constants or LocalStorage
+    sbUrlInput.value = localStorage.getItem('food_sys_supabase_url') || SUPABASE_URL || '';
+    sbKeyInput.value = localStorage.getItem('food_sys_supabase_key') || SUPABASE_ANON_KEY || '';
 
     function initSupabase() {
       const u = sbUrlInput.value.trim();
@@ -159,19 +164,15 @@
     async function fetchAllData() {
       if (!supabaseClient) return;
 
-      // Fetch Vendors
       const { data: vData } = await supabaseClient.from('vendors').select('*');
       if (vData) vendors = vData;
 
-      // Fetch Menus
       const { data: mData } = await supabaseClient.from('menus').select('*');
       if (mData) menus = mData;
 
-      // Fetch Orders
       const { data: oData } = await supabaseClient.from('orders').select('*').order('id', { ascending: false });
       if (oData) orders = oData;
 
-      // Fetch Customer Service Phone Numbers
       const { data: csData } = await supabaseClient.from('customer_service').select('*');
       if (csData && csData.length > 0) {
         document.getElementById('helpline-bar').classList.remove('hidden');
@@ -198,7 +199,7 @@
 
       filtered.forEach(v => {
         const card = document.createElement('div');
-        card.className = 'bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition cursor-pointer p-4 space-y-2';
+        card.className = 'bg-white rounded-xl border border-slate-200 p-4 space-y-2 cursor-pointer hover:shadow-md transition';
         card.innerHTML = `
           <div class="flex justify-between items-start">
             <h3 class="font-bold text-slate-900 text-sm">${v.name}</h3>
