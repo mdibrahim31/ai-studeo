@@ -3,14 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoodHub - Vendor Portal & Store Manager</title>
-    <!-- Google Fonts, Tailwind CSS, Lucide & Supabase JS -->
+    <title>FoodHub - Order Delicious Food</title>
+    <!-- Google Fonts, Tailwind CSS & Supabase JS -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .hero-bg {
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80');
+            background-size: cover; background-position: center;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col justify-between">
@@ -18,236 +27,172 @@
     <!-- Navigation Header -->
     <header class="bg-white shadow-sm sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-orange-500 flex items-center gap-2">
-                <i data-lucide="store"></i> FoodHub Vendor Dashboard
+            <h1 class="text-2xl font-bold text-orange-500 flex items-center gap-2 cursor-pointer" onclick="backToVendors()">
+                <i data-lucide="utensils"></i> FoodHub
             </h1>
-            <!-- Logged-in Vendor Info & Logout -->
-            <div id="vendor-header-user" class="hidden items-center gap-3">
-                <div class="text-right">
-                    <p id="nav-store-name" class="font-bold text-sm text-gray-800">Store Name</p>
-                    <p id="nav-store-phone" class="text-xs text-gray-500">01700000000</p>
+            <div class="flex items-center gap-3">
+                <!-- User Account / Login Button -->
+                <div id="user-header-profile" class="flex items-center gap-2">
+                    <button id="auth-btn" onclick="openAuthModal()" class="bg-orange-50 hover:bg-orange-100 text-orange-600 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                        <i data-lucide="user" class="w-4 h-4"></i> <span id="auth-btn-text">Login / Register</span>
+                    </button>
+                    <button id="logout-btn" onclick="logoutCustomer()" class="hidden bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 p-2 rounded-xl transition">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
                 </div>
-                <button onclick="logoutVendor()" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition">
-                    <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+
+                <button onclick="toggleCart()" class="relative bg-orange-50 hover:bg-orange-100 text-orange-600 px-4 py-2 rounded-xl transition flex items-center gap-2 font-medium text-xs sm:text-sm">
+                    <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                    <span>Cart</span>
+                    <span id="cartCount" class="bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">0</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow space-y-6 w-full">
+    <!-- Customer Auth Modal -->
+    <div id="authModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5 animate-fade-in">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="user-check" class="text-orange-500"></i> Customer Portal
+                </h3>
+                <button onclick="closeAuthModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x"></i></button>
+            </div>
 
-        <!-- AUTH CONTAINER (Shown when NOT logged in) -->
-        <div id="auth-container" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-md border border-gray-100 space-y-6">
-            
-            <!-- Auth Tab Switcher -->
+            <!-- Auth Tabs -->
             <div class="flex bg-gray-100 p-1 rounded-xl">
-                <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-orange-600 bg-white shadow-xs">
+                <button id="tab-cust-login" onclick="switchCustTab('login')" class="flex-1 py-2 text-xs font-semibold rounded-lg text-orange-600 bg-white shadow-xs">
                     Login
                 </button>
-                <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-700">
-                    Register Store
+                <button id="tab-cust-reg" onclick="switchCustTab('register')" class="flex-1 py-2 text-xs font-semibold rounded-lg text-gray-500">
+                    Register
                 </button>
             </div>
 
-            <!-- LOGIN FORM -->
-            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
-                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <i data-lucide="log-in" class="text-orange-500"></i> Vendor Login
-                </h2>
+            <!-- Login Form -->
+            <form id="cust-login-form" onsubmit="handleCustLogin(event)" class="space-y-3">
                 <div>
-                    <label class="text-xs font-semibold text-gray-600">Phone Number</label>
-                    <input type="text" id="login-phone" required placeholder="01700000000" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
+                    <label class="text-xs font-semibold text-gray-600">Mobile Number</label>
+                    <input type="text" id="cust-login-phone" required placeholder="01700000000" class="w-full mt-1 px-3 py-2 rounded-xl border text-sm focus:outline-orange-500">
                 </div>
                 <div>
                     <label class="text-xs font-semibold text-gray-600">Password</label>
-                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
+                    <input type="password" id="cust-login-pass" required placeholder="••••••••" class="w-full mt-1 px-3 py-2 rounded-xl border text-sm focus:outline-orange-500">
                 </div>
-                <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition shadow-md shadow-orange-500/20">
-                    Access My Store
+                <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl transition text-sm">
+                    Login to FoodHub
                 </button>
             </form>
 
-            <!-- REGISTER FORM -->
-            <form id="register-form" onsubmit="handleRegister(event)" class="hidden space-y-4">
-                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <i data-lucide="store" class="text-orange-500"></i> Register New Store
-                </h2>
+            <!-- Register Form -->
+            <form id="cust-reg-form" onsubmit="handleCustRegister(event)" class="hidden space-y-3">
                 <div>
-                    <label class="text-xs font-semibold text-gray-600">Restaurant / Store Name</label>
-                    <input type="text" id="reg-name" required placeholder="e.g. Sultan's Dine" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-xs font-semibold text-gray-600">Phone Number (Login ID)</label>
-                        <input type="text" id="reg-phone" required placeholder="01700000000" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
-                    </div>
-                    <div>
-                        <label class="text-xs font-semibold text-gray-600">Password</label>
-                        <input type="password" id="reg-password" required placeholder="••••••••" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
-                    </div>
+                    <label class="text-xs font-semibold text-gray-600">Full Name</label>
+                    <input type="text" id="cust-reg-name" required placeholder="Anika Rahman" class="w-full mt-1 px-3 py-2 rounded-xl border text-sm focus:outline-orange-500">
                 </div>
                 <div>
-                    <label class="text-xs font-semibold text-gray-600">Cuisine / Category</label>
-                    <select id="reg-type" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500 font-medium">
+                    <label class="text-xs font-semibold text-gray-600">Mobile Number</label>
+                    <input type="text" id="cust-reg-phone" required placeholder="01700000000" class="w-full mt-1 px-3 py-2 rounded-xl border text-sm focus:outline-orange-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600">Password</label>
+                    <input type="password" id="cust-reg-pass" required placeholder="••••••••" class="w-full mt-1 px-3 py-2 rounded-xl border text-sm focus:outline-orange-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600">Delivery Address</label>
+                    <input type="text" id="cust-reg-address" required placeholder="House 12, Road 5, Banani, Dhaka" class="w-full mt-1 px-3 py-2 rounded-xl border text-sm focus:outline-orange-500">
+                </div>
+                <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl transition text-sm">
+                    Create Customer Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Views Container -->
+    <main class="flex-grow">
+        <!-- Hero Section -->
+        <section class="hero-bg text-white py-16 px-4 text-center">
+            <div class="max-w-3xl mx-auto">
+                <h2 class="text-3xl sm:text-4xl font-bold mb-3">Delicious Food, Delivered Fast</h2>
+                <p class="text-gray-200 mb-6 text-sm sm:text-base">Discover top-rated vendors and menu items near you.</p>
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <div class="relative flex-grow max-w-md">
+                        <i data-lucide="search" class="absolute left-4 top-3.5 text-gray-400 w-5 h-5"></i>
+                        <input type="text" id="searchInput" oninput="filterData()" placeholder="Search vendors or items..." class="w-full pl-12 pr-4 py-3 rounded-xl text-gray-800 bg-white focus:outline-none shadow-md text-sm">
+                    </div>
+                    <select id="categoryFilter" onchange="filterData()" class="px-4 py-3 rounded-xl text-gray-800 bg-white focus:outline-none shadow-md font-medium text-sm">
+                        <option value="all">All Categories</option>
                         <option value="Fast Food">Fast Food</option>
-                        <option value="Desi / Local">Desi / Local</option>
                         <option value="Italian">Italian</option>
-                        <option value="Dessert & Bakery">Dessert & Bakery</option>
+                        <option value="Desi">Desi / Local</option>
+                        <option value="Dessert">Dessert</option>
                     </select>
                 </div>
-                <div>
-                    <label class="text-xs font-semibold text-gray-600">Store Address</label>
-                    <input type="text" id="reg-address" placeholder="e.g. Gulshan 2, Dhaka" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
-                </div>
-
-                <!-- Google Maps Link Input Field -->
-                <div>
-                    <label class="text-xs font-semibold text-gray-600 flex justify-between items-center">
-                        <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-orange-500"></i> Google Maps Pin Point Link</span>
-                        <span class="text-[10px] text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded-full">Supports Short Links (maps.app.goo.gl)</span>
-                    </label>
-                    <input type="text" id="reg-maps-link" placeholder="Paste Google Maps link (e.g. https://maps.app.goo.gl/Epwp38Vyv2kv26wV8)" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
-                    <p id="parsed-coords-badge" class="text-[11px] text-gray-400 mt-1">Paste map link (e.g. https://maps.app.goo.gl/... or 23.7910, 90.4060)</p>
-                </div>
-
-                <!-- Direct Image File Upload -->
-                <div>
-                    <label class="text-xs font-semibold text-gray-600 flex justify-between items-center">
-                        <span class="flex items-center gap-1"><i data-lucide="image" class="w-3.5 h-3.5 text-orange-500"></i> Store Cover Image</span>
-                        <span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">Direct Image Upload</span>
-                    </label>
-                    <input type="file" id="reg-cover-file" accept="image/*" class="w-full mt-1 text-xs text-gray-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100 cursor-pointer">
-                </div>
-
-                <button type="submit" id="reg-submit-btn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition shadow-md shadow-orange-500/20">
-                    Create My Store & Account
-                </button>
-            </form>
-
-        </div>
-
-        <!-- DASHBOARD CONTAINER (Shown when logged in) -->
-        <div id="dashboard-container" class="hidden space-y-6">
-
-            <!-- Overview Stats Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div class="w-12 h-12 bg-orange-100 text-orange-500 rounded-xl flex items-center justify-center font-bold text-xl">
-                        <i data-lucide="dollar-sign"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">Total Revenue</p>
-                        <p id="stat-revenue" class="text-2xl font-bold text-gray-800">৳0</p>
-                    </div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div class="w-12 h-12 bg-blue-100 text-blue-500 rounded-xl flex items-center justify-center font-bold text-xl">
-                        <i data-lucide="shopping-bag"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">Kitchen Orders</p>
-                        <p id="stat-orders" class="text-2xl font-bold text-gray-800">0</p>
-                    </div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div class="w-12 h-12 bg-emerald-100 text-emerald-500 rounded-xl flex items-center justify-center font-bold text-xl">
-                        <i data-lucide="utensils-crossed"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">My Active Dishes</p>
-                        <p id="stat-dishes" class="text-2xl font-bold text-gray-800">0</p>
-                    </div>
-                </div>
             </div>
+        </section>
 
-            <!-- Store Info Banner -->
-            <div id="store-banner-card" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div class="flex items-center gap-4">
-                    <img id="store-banner-img" src="https://images.unsplash.com/photo-1552566626-52f8b828add9" class="w-16 h-16 rounded-2xl object-cover border border-gray-200">
-                    <div>
-                        <h2 id="store-banner-title" class="text-xl font-bold text-gray-800">Restaurant Name</h2>
-                        <p id="store-banner-category" class="text-xs text-orange-500 font-semibold mt-0.5">Fast Food • Gulshan</p>
-                        <p id="store-banner-folder" class="text-[11px] text-gray-400 font-mono mt-1 flex items-center gap-1">
-                            <i data-lucide="folder-check" class="w-3.5 h-3.5 text-emerald-500"></i> Bucket Folder: <span id="bucket-folder-name">vendors/vendor_1/</span>
-                        </p>
-                    </div>
-                </div>
-                <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Store Live
-                </span>
+        <!-- Vendors Grid -->
+        <section class="max-w-7xl mx-auto px-4 py-10" id="vendorSection">
+            <h3 class="text-xl sm:text-2xl font-bold mb-6 flex items-center gap-2">
+                <i data-lucide="store" class="text-orange-500"></i> Available Restaurants
+            </h3>
+            <div id="vendorContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Loaded dynamically -->
             </div>
+        </section>
 
-            <!-- Kitchen Orders Section -->
+        <!-- Menu View (Hidden initially) -->
+        <section id="menuSection" class="max-w-7xl mx-auto px-4 py-10 hidden">
+            <button onclick="backToVendors()" class="mb-6 flex items-center gap-2 text-orange-500 font-semibold hover:underline text-sm">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Restaurants
+            </button>
+            <div id="vendorHeader" class="bg-white p-6 rounded-2xl shadow-sm border mb-8 flex items-center gap-4"></div>
+            <h4 class="text-xl font-bold mb-6">Menu Items</h4>
+            <div id="menuContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- Customer Orders Tracking Section -->
+        <section class="max-w-7xl mx-auto px-4 py-6">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <i data-lucide="clock" class="text-orange-500"></i> Incoming Kitchen Orders
-                </h2>
-                <div id="vendor-orders-list" class="space-y-3">
-                    <p class="text-gray-400 text-center py-6">No kitchen orders received yet.</p>
+                <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="clock" class="text-orange-500"></i> My Live Orders
+                </h3>
+                <div id="customer-orders-list" class="space-y-3 divide-y divide-gray-100 text-sm">
+                    <p class="text-gray-400 py-4 text-center">Login to view your live orders.</p>
                 </div>
             </div>
-
-            <!-- Menu Catalog Section -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <i data-lucide="book-open" class="text-orange-500"></i> My Menu Dishes
-                    </h2>
-                    <button id="open-add-dish-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-md shadow-orange-500/20">
-                        <i data-lucide="plus"></i> Add New Dish
-                    </button>
-                </div>
-                <div id="vendor-dishes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <p class="text-gray-400 col-span-full text-center py-6">Loading menu items...</p>
-                </div>
-            </div>
-
-        </div>
-
+        </section>
     </main>
 
-    <!-- Add Dish Modal -->
-    <div id="dish-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-bold text-gray-800 text-lg">Add Dish to My Menu</h3>
-                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600"><i data-lucide="x"></i></button>
-            </div>
+    <!-- Slide-over Cart Drawer -->
+    <div id="cartDrawer" class="fixed inset-0 z-50 bg-black/50 hidden flex justify-end">
+        <div class="bg-white w-full max-w-md h-full p-6 flex flex-col justify-between shadow-2xl animate-fade-in">
             <div>
-                <label class="font-semibold text-xs text-gray-600">Dish Name</label>
-                <input id="dish-name" type="text" placeholder="e.g. Special Beef Burger" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="font-semibold text-xs text-gray-600">Price (৳)</label>
-                    <input id="dish-price" type="number" value="180" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold flex items-center gap-2"><i data-lucide="shopping-cart"></i> Your Cart</h3>
+                    <button onclick="toggleCart()" class="text-gray-500 hover:text-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button>
                 </div>
-                <div>
-                    <label class="font-semibold text-xs text-gray-600">Category</label>
-                    <input id="dish-cat" type="text" value="Fast Food" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
-                </div>
-            </div>
+                <div id="cartItems" class="space-y-3 overflow-y-auto max-h-[35vh]"></div>
 
-            <!-- Direct Image Upload for Dish -->
-            <div class="space-y-2">
-                <label class="font-semibold text-xs text-gray-600 flex justify-between items-center">
-                    <span>Dish Image</span>
-                    <span id="folder-upload-badge" class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">Direct Image Upload</span>
-                </label>
-
-                <div class="flex flex-col gap-2">
-                    <input id="dish-img-file" type="file" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100 cursor-pointer">
+                <!-- Checkout Details -->
+                <div class="mt-6 space-y-3 border-t pt-4">
+                    <p class="text-xs font-semibold text-gray-600 flex items-center gap-1">
+                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-orange-500"></i> Delivery Contact Details
+                    </p>
+                    <input type="text" id="custName" placeholder="Your Full Name" class="w-full px-3 py-2 rounded-xl border text-sm focus:outline-orange-500">
+                    <input type="text" id="custMobile" placeholder="Mobile Number" class="w-full px-3 py-2 rounded-xl border text-sm focus:outline-orange-500">
+                    <input type="text" id="custAddress" placeholder="Delivery Address" class="w-full px-3 py-2 rounded-xl border text-sm focus:outline-orange-500">
                 </div>
             </div>
-
-            <div>
-                <label class="font-semibold text-xs text-gray-600">Description</label>
-                <textarea id="dish-desc" rows="2" placeholder="Delicious ingredients..." class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500"></textarea>
-            </div>
-            <div class="flex gap-3 pt-2">
-                <button id="close-modal-btn-2" class="flex-1 bg-gray-100 text-gray-700 font-semibold py-2.5 rounded-xl text-sm">Cancel</button>
-                <button id="save-dish-btn" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl text-sm transition flex justify-center items-center gap-1">
-                    <span>Save Dish</span>
+            <div class="border-t pt-4">
+                <div class="flex justify-between font-bold text-lg mb-4">
+                    <span>Total Amount:</span>
+                    <span id="cartTotal" class="text-orange-500">৳0.00</span>
+                </div>
+                <button onclick="placeOrder()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-orange-500/30 text-sm">
+                    Place Order Now
                 </button>
             </div>
         </div>
@@ -255,396 +200,339 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t py-6 text-center text-gray-500 text-sm">
-        <p>&copy; 2026 FoodHub Vendor Portal. All rights reserved.</p>
+        <p>&copy; 2026 FoodHub. All rights reserved.</p>
     </footer>
 
+    <!-- Script Application Logic -->
     <script>
         const SUPABASE_URL = 'https://kdqyompkfmnocpihfzdj.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkcXlvbXBrZm1ub2NwaWhmemRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMDkxOTIsImV4cCI6MjEwNDg4NTE5Mn0.4gmwMruyf54ZdXAADEAa9noLZD5JMFyLOzrszUIMVns';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let currentVendor = null;
+        let vendors = [];
+        let cart = [];
+        let currentVendorId = null;
+        let currentVendorName = "";
+        let currentCustomer = null;
 
         lucide.createIcons();
 
-        // Regex extractor for all Google Maps URL formats (direct, expanded, short, embed)
-        function extractCoordsFromText(text) {
-            if (!text) return null;
-
-            // 1. @23.791024,90.406012
-            const atMatch = text.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-            if (atMatch) return { lat: parseFloat(atMatch[1]), long: parseFloat(atMatch[2]) };
-
-            // 2. !3d23.791024!4d90.406012 (Google Maps Embed/Place structure)
-            const embedMatch = text.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
-            if (embedMatch) return { lat: parseFloat(embedMatch[1]), long: parseFloat(embedMatch[2]) };
-
-            // 3. q=23.791024,90.406012 or ll=23.791024,90.406012 or center=23.791024,90.406012
-            const qMatch = text.match(/[?&](?:q|ll|center|query)=(-?\d+\.\d+),(-?\d+\.\d+)/);
-            if (qMatch) return { lat: parseFloat(qMatch[1]), long: parseFloat(qMatch[2]) };
-
-            // 4. Raw decimal pair e.g. "23.7910, 90.4060" or "23.791024,90.406012"
-            const plainMatch = text.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
-            if (plainMatch) return { lat: parseFloat(plainMatch[1]), long: parseFloat(plainMatch[2]) };
-
-            return null;
-        }
-
-        // Async Resolver to handle maps.app.goo.gl and goo.gl/maps short links
-        async function parseGoogleMapsUrl(str) {
-            if (!str) return { lat: 23.7910, long: 90.4060 };
-            str = decodeURIComponent(str.trim());
-
-            // 1. Direct Regex match check
-            const direct = extractCoordsFromText(str);
-            if (direct) return direct;
-
-            // 2. Short Link Resolver (e.g. https://maps.app.goo.gl/Epwp38Vyv2kv26wV8)
-            if (str.includes('goo.gl') || str.includes('maps.app') || str.includes('page.link')) {
-                try {
-                    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(str)}`);
-                    const data = await res.json();
-                    if (data && data.contents) {
-                        const resolved = extractCoordsFromText(data.contents);
-                        if (resolved) return resolved;
-                    }
-                } catch(e) {
-                    console.warn("Proxy expansion warning:", e);
-                }
-            }
-
-            return { lat: 23.7910, long: 90.4060 };
-        }
-
-        // Real-time listener on Maps Link input to show parsed coordinates
-        let mapsDebounceTimer = null;
-        document.getElementById('reg-maps-link').addEventListener('input', (e) => {
-            const badge = document.getElementById('parsed-coords-badge');
-            badge.innerText = 'Analyzing Google Maps Link...';
-            badge.className = 'text-[11px] text-amber-600 font-semibold mt-1';
-
-            clearTimeout(mapsDebounceTimer);
-            mapsDebounceTimer = setTimeout(async () => {
-                const parsed = await parseGoogleMapsUrl(e.target.value);
-                badge.innerText = `Converted Coordinates -> Latitude: ${parsed.lat}, Longitude: ${parsed.long}`;
-                badge.className = 'text-[11px] text-emerald-600 font-bold mt-1';
-            }, 500);
-        });
-
-        function checkVendorSession() {
-            const saved = localStorage.getItem('foodhub_active_vendor');
+        // CUSTOMER AUTH CHECK
+        function checkCustomerAuth() {
+            const saved = localStorage.getItem('foodhub_active_customer');
             if (saved) {
                 try {
-                    currentVendor = JSON.parse(saved);
-                    showDashboard();
+                    currentCustomer = JSON.parse(saved);
+                    document.getElementById('auth-btn-text').innerText = currentCustomer.name || 'My Profile';
+                    document.getElementById('logout-btn').classList.remove('hidden');
+
+                    document.getElementById('custName').value = currentCustomer.name || '';
+                    document.getElementById('custMobile').value = currentCustomer.phone || '';
+                    document.getElementById('custAddress').value = currentCustomer.address || '';
                 } catch(e) {
-                    localStorage.removeItem('foodhub_active_vendor');
-                    showAuth();
+                    localStorage.removeItem('foodhub_active_customer');
                 }
-            } else {
-                showAuth();
             }
+            loadCustomerOrders();
         }
 
-        function switchAuthTab(tab) {
-            const loginForm = document.getElementById('login-form');
-            const regForm = document.getElementById('register-form');
-            const tabLogin = document.getElementById('tab-login-btn');
-            const tabReg = document.getElementById('tab-register-btn');
+        function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
+        function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); }
 
+        function switchCustTab(tab) {
             if (tab === 'login') {
-                loginForm.classList.remove('hidden');
-                regForm.classList.add('hidden');
-                tabLogin.className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-orange-600 bg-white shadow-xs';
-                tabReg.className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-700';
+                document.getElementById('cust-login-form').classList.remove('hidden');
+                document.getElementById('cust-reg-form').classList.add('hidden');
+                document.getElementById('tab-cust-login').className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-orange-600 bg-white shadow-xs';
+                document.getElementById('tab-cust-reg').className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-gray-500';
             } else {
-                loginForm.classList.add('hidden');
-                regForm.classList.remove('hidden');
-                tabReg.className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-orange-600 bg-white shadow-xs';
-                tabLogin.className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-700';
+                document.getElementById('cust-login-form').classList.add('hidden');
+                document.getElementById('cust-reg-form').classList.remove('hidden');
+                document.getElementById('tab-cust-reg').className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-orange-600 bg-white shadow-xs';
+                document.getElementById('tab-cust-login').className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-gray-500';
             }
         }
 
-        function showAuth() {
-            document.getElementById('auth-container').classList.remove('hidden');
-            document.getElementById('dashboard-container').classList.add('hidden');
-            document.getElementById('vendor-header-user').classList.add('hidden');
-            document.getElementById('vendor-header-user').classList.remove('flex');
-        }
-
-        function showDashboard() {
-            document.getElementById('auth-container').classList.add('hidden');
-            document.getElementById('dashboard-container').classList.remove('hidden');
-            document.getElementById('vendor-header-user').classList.remove('hidden');
-            document.getElementById('vendor-header-user').classList.add('flex');
-
-            document.getElementById('nav-store-name').innerText = currentVendor.name;
-            document.getElementById('nav-store-phone').innerText = currentVendor.phone || '';
-
-            document.getElementById('store-banner-title').innerText = currentVendor.name;
-            document.getElementById('store-banner-category').innerText = `${currentVendor.types || 'Restaurant'} • ${currentVendor.address || 'Local'}`;
-            
-            const folderPath = currentVendor.storage_folder || `vendors/vendor_${currentVendor.id}/`;
-            document.getElementById('bucket-folder-name').innerText = folderPath;
-            if (currentVendor.profile_image_url) {
-                document.getElementById('store-banner-img').src = currentVendor.profile_image_url;
-            }
-
-            loadVendorStoreData();
-        }
-
-        // Helper to convert Image file to Data URL or upload to bucket
-        async function processImageFileUpload(file, folderPath) {
-            if (!file) return null;
-            const fileName = `${folderPath}${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-
-            try {
-                const { error } = await supabaseClient.storage.from('menu-images').upload(fileName, file, { cacheControl: '3600', upsert: true });
-                if (!error) {
-                    const { data } = supabaseClient.storage.from('menu-images').getPublicUrl(fileName);
-                    if (data && data.publicUrl) return { url: data.publicUrl, path: fileName };
-                }
-            } catch(e) {
-                console.warn('Storage bucket note:', e);
-            }
-
-            // High-quality Data URL fallback
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve({ url: e.target.result, path: fileName });
-                reader.onerror = () => resolve(null);
-                reader.readAsDataURL(file);
-            });
-        }
-
-        // REGISTER HANDLER
-        async function handleRegister(e) {
+        async function handleCustRegister(e) {
             e.preventDefault();
-            const submitBtn = document.getElementById('reg-submit-btn');
-            submitBtn.disabled = true;
-            submitBtn.innerText = "Processing Store Registration...";
+            const name = document.getElementById('cust-reg-name').value.trim();
+            const phone = document.getElementById('cust-reg-phone').value.trim();
+            const password = document.getElementById('cust-reg-pass').value.trim();
+            const address = document.getElementById('cust-reg-address').value.trim();
 
-            const name = document.getElementById('reg-name').value.trim();
-            const phone = document.getElementById('reg-phone').value.trim();
-            const password = document.getElementById('reg-password').value.trim();
-            const types = document.getElementById('reg-type').value;
-            const address = document.getElementById('reg-address').value.trim();
-            const mapsLink = document.getElementById('reg-maps-link').value.trim();
-            const coverFileInput = document.getElementById('reg-cover-file');
-
-            if (!name || !phone || !password) {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Create My Store & Account";
-                return alert("Please fill required fields!");
-            }
-
-            // Convert Google Maps Link to Lat & Long (Handles short links like maps.app.goo.gl too!)
-            const coords = await parseGoogleMapsUrl(mapsLink);
-
-            // Process Cover Image File
-            let coverUrl = 'https://images.unsplash.com/photo-1552566626-52f8b828add9';
-            if (coverFileInput.files && coverFileInput.files[0]) {
-                const processed = await processImageFileUpload(coverFileInput.files[0], 'vendor_covers/');
-                if (processed && processed.url) coverUrl = processed.url;
-            }
-
-            const { data: existing } = await supabaseClient.from('vendors').select('*').eq('phone', phone);
-            if (existing && existing.length > 0) {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Create My Store & Account";
-                alert("Store with this Phone Number already exists!");
-                switchAuthTab('login');
-                return;
-            }
-
-            const { data: newVendors, error } = await supabaseClient.from('vendors').insert([{
-                name, phone, password, types, address,
-                latitude: coords.lat,
-                longitude: coords.long,
-                profile_image_url: coverUrl
+            const { data, error } = await supabaseClient.from('customers').insert([{
+                name, phone, password, address
             }]).select();
 
             if (error) {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Create My Store & Account";
-                return alert("Error: " + error.message);
+                alert("Registration Notice: " + error.message);
+                return;
             }
 
-            if (newVendors && newVendors.length > 0) {
-                currentVendor = newVendors[0];
-                const storageFolder = `vendors/vendor_${currentVendor.id}/`;
-                await supabaseClient.from('vendors').update({ storage_folder: storageFolder }).eq('id', currentVendor.id);
-                currentVendor.storage_folder = storageFolder;
-
-                localStorage.setItem('foodhub_active_vendor', JSON.stringify(currentVendor));
-                showDashboard();
+            if (data && data.length > 0) {
+                currentCustomer = data[0];
+                localStorage.setItem('foodhub_active_customer', JSON.stringify(currentCustomer));
+                alert(`Welcome ${currentCustomer.name}! Account created.`);
+                closeAuthModal();
+                checkCustomerAuth();
             }
         }
 
-        // LOGIN HANDLER
-        async function handleLogin(e) {
+        async function handleCustLogin(e) {
             e.preventDefault();
-            const phone = document.getElementById('login-phone').value.trim();
-            const password = document.getElementById('login-password').value.trim();
+            const phone = document.getElementById('cust-login-phone').value.trim();
+            const password = document.getElementById('cust-login-pass').value.trim();
 
-            const { data: foundVendors } = await supabaseClient.from('vendors').select('*').eq('phone', phone);
-
-            if (!foundVendors || foundVendors.length === 0) return alert("Store account not found!");
-
-            const match = foundVendors.find(v => v.password === password);
-            if (!match) return alert("Incorrect password!");
-
-            currentVendor = match;
-            if (!currentVendor.storage_folder) {
-                currentVendor.storage_folder = `vendors/vendor_${currentVendor.id}/`;
-            }
-            localStorage.setItem('foodhub_active_vendor', JSON.stringify(currentVendor));
-            showDashboard();
-        }
-
-        function logoutVendor() {
-            localStorage.removeItem('foodhub_active_vendor');
-            currentVendor = null;
-            showAuth();
-        }
-
-        // LOAD ORDERS AND DISHES
-        async function loadVendorStoreData() {
-            if (!currentVendor) return;
-
-            // 1. Kitchen Orders for currentVendor.id ONLY
-            const { data: oData } = await supabaseClient.from('orders').select('*').eq('vendor_id', currentVendor.id).order('id', { ascending: false });
-            const ordersContainer = document.getElementById('vendor-orders-list');
-            ordersContainer.innerHTML = '';
-
-            if (oData && oData.length > 0) {
-                document.getElementById('stat-orders').innerText = oData.length;
-                const totalRevenue = oData.reduce((sum, o) => sum + (o.amount || 0), 0);
-                document.getElementById('stat-revenue').innerText = '৳' + totalRevenue;
-
-                oData.forEach(o => {
-                    const div = document.createElement('div');
-                    div.className = 'p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2 flex flex-col sm:flex-row justify-between items-start sm:items-center';
-                    
-                    let actionButtons = '';
-                    if (o.status === 'Pending') {
-                        actionButtons = `
-                            <button onclick="acceptOrder(${o.id})" class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-3.5 py-2 rounded-xl text-xs transition shadow-sm flex items-center gap-1">
-                                <i data-lucide="check" class="w-3.5 h-3.5"></i> Accept Order
-                            </button>
-                            <button onclick="rejectOrder(${o.id})" class="bg-red-500 hover:bg-red-600 text-white font-semibold px-3.5 py-2 rounded-xl text-xs transition shadow-sm flex items-center gap-1">
-                                <i data-lucide="x" class="w-3.5 h-3.5"></i> Reject Order
-                            </button>
-                        `;
-                    } else {
-                        actionButtons = `
-                            <span class="font-bold text-xs px-3 py-1 rounded-full bg-gray-200 text-gray-700">${o.status}</span>
-                        `;
-                    }
-
-                    div.innerHTML = `
-                        <div>
-                            <p class="font-bold text-gray-800 text-sm">Order #${o.id} - ${o.customer_name || 'Customer'} (${o.customer_phone || ''})</p>
-                            <p class="text-xs text-gray-500">${o.delivery_address || 'No address'}</p>
-                            <p class="text-xs font-bold text-orange-600 mt-1">Amount: ৳${o.amount}</p>
-                        </div>
-                        <div class="flex items-center gap-2 mt-2 sm:mt-0">
-                            ${actionButtons}
-                        </div>
-                    `;
-                    ordersContainer.appendChild(div);
-                });
-                lucide.createIcons();
-            } else {
-                document.getElementById('stat-orders').innerText = '0';
-                document.getElementById('stat-revenue').innerText = '৳0';
-                ordersContainer.innerHTML = '<p class="text-gray-400 text-center py-6">No kitchen orders received yet.</p>';
+            const { data } = await supabaseClient.from('customers').select('*').eq('phone', phone);
+            if (!data || data.length === 0) {
+                alert("Account not found. Please Register!");
+                switchCustTab('register');
+                return;
             }
 
-            // 2. Menu Dishes
-            const { data: mData } = await supabaseClient.from('menus').select('*').eq('vendor_id', currentVendor.id);
-            const dishesGrid = document.getElementById('vendor-dishes-grid');
-            dishesGrid.innerHTML = '';
+            const user = data.find(c => c.password === password);
+            if (!user) return alert("Incorrect Password!");
 
-            if (mData && mData.length > 0) {
-                document.getElementById('stat-dishes').innerText = mData.length;
-                mData.forEach(m => {
-                    const card = document.createElement('div');
-                    card.className = 'p-4 bg-white border border-gray-100 shadow-sm rounded-2xl space-y-2 flex gap-3 items-center';
-                    card.innerHTML = `
-                        <img src="${m.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'}" class="w-16 h-16 rounded-xl object-cover">
-                        <div class="flex-grow">
-                            <div class="flex justify-between font-bold text-sm">
-                                <span>${m.name}</span>
-                                <span class="text-orange-500">৳${m.price}</span>
+            currentCustomer = user;
+            localStorage.setItem('foodhub_active_customer', JSON.stringify(currentCustomer));
+            alert(`Logged in as ${currentCustomer.name}`);
+            closeAuthModal();
+            checkCustomerAuth();
+        }
+
+        function logoutCustomer() {
+            localStorage.removeItem('foodhub_active_customer');
+            currentCustomer = null;
+            document.getElementById('auth-btn-text').innerText = 'Login / Register';
+            document.getElementById('logout-btn').classList.add('hidden');
+            loadCustomerOrders();
+        }
+
+        // Fetch Data from Supabase
+        async function fetchAppData() {
+            try {
+                const { data: vendorData } = await supabaseClient.from('vendors').select('*');
+                const { data: menuData } = await supabaseClient.from('menus').select('*');
+
+                vendors = (vendorData || []).map(res => ({
+                    id: res.id,
+                    name: res.name,
+                    category: res.types || 'Fast Food',
+                    image: res.profile_image_url || 'https://images.unsplash.com/photo-1552566626-52f8b828add9',
+                    address: res.address || 'Dhaka',
+                    lat: res.latitude || 23.7910,
+                    long: res.longitude || 90.4060,
+                    menu: (menuData || []).filter(m => m.vendor_id == res.id)
+                }));
+
+                renderVendors(vendors);
+            } catch (err) {
+                console.error("Error loading app data:", err);
+            }
+        }
+
+        function renderVendors(data) {
+            const container = document.getElementById('vendorContainer');
+            container.innerHTML = '';
+            if(data.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center text-gray-500 py-10">No restaurants found right now.</p>`;
+                return;
+            }
+            data.forEach(res => {
+                container.innerHTML += `
+                    <div onclick="openVendor(${res.id})" class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition cursor-pointer group border border-gray-100">
+                        <div class="h-48 overflow-hidden">
+                            <img src="${res.image}" alt="${res.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        </div>
+                        <div class="p-5">
+                            <span class="text-xs bg-orange-100 text-orange-600 px-3 py-1 rounded-full font-semibold">${res.category}</span>
+                            <h4 class="text-lg font-bold mt-2 text-gray-800">${res.name}</h4>
+                            <p class="text-xs text-gray-500 mt-1">${res.address}</p>
+                            <div class="flex items-center gap-1 text-yellow-500 mt-2 text-sm font-semibold">
+                                <i data-lucide="star" class="w-4 h-4 fill-current"></i> 5.0 • ${res.menu.length} items
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">${m.description || ''}</p>
                         </div>
-                    `;
-                    dishesGrid.appendChild(card);
-                });
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function filterData() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const category = document.getElementById('categoryFilter').value;
+
+            const filtered = vendors.filter(res => {
+                const matchesCategory = category === 'all' || res.category.toLowerCase().includes(category.toLowerCase());
+                const matchesSearch = res.name.toLowerCase().includes(query) || res.menu.some(m => m.name.toLowerCase().includes(query));
+                return matchesCategory && matchesSearch;
+            });
+            renderVendors(filtered);
+        }
+
+        function openVendor(id) {
+            const res = vendors.find(r => r.id === id);
+            currentVendorId = res.id;
+            currentVendorName = res.name;
+
+            document.getElementById('vendorSection').classList.add('hidden');
+            document.querySelector('section.hero-bg').classList.add('hidden');
+            
+            const menuSection = document.getElementById('menuSection');
+            menuSection.classList.remove('hidden');
+
+            document.getElementById('vendorHeader').innerHTML = `
+                <img src="${res.image}" class="w-20 h-20 rounded-xl object-cover border">
+                <div>
+                    <h3 class="text-2xl font-bold">${res.name}</h3>
+                    <p class="text-gray-500 text-sm">${res.category} • ${res.address} • ⭐ 5.0</p>
+                </div>
+            `;
+
+            const menuContainer = document.getElementById('menuContainer');
+            menuContainer.innerHTML = '';
+            if(res.menu.length === 0) {
+                menuContainer.innerHTML = `<p class="col-span-full text-center text-gray-400 py-10">No menu items added for this restaurant yet.</p>`;
+                return;
+            }
+
+            res.menu.forEach(item => {
+                menuContainer.innerHTML += `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                        <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'}" class="w-24 h-24 rounded-xl object-cover">
+                        <div class="flex-grow">
+                            <h5 class="font-bold text-gray-800 text-base">${item.name}</h5>
+                            <p class="text-orange-500 font-bold mt-1 text-base">৳${parseFloat(item.price).toFixed(2)}</p>
+                            <button onclick="addToCart('${item.name}', ${item.price})" class="mt-2 bg-orange-500 hover:bg-orange-600 text-white text-xs px-4 py-2 rounded-lg transition font-medium shadow-xs">
+                                Add to Cart +
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function backToVendors() {
+            document.getElementById('vendorSection').classList.remove('hidden');
+            document.querySelector('section.hero-bg').classList.remove('hidden');
+            document.getElementById('menuSection').classList.add('hidden');
+        }
+
+        // Cart Actions
+        function toggleCart() {
+            document.getElementById('cartDrawer').classList.toggle('hidden');
+        }
+
+        function addToCart(name, price) {
+            const existing = cart.find(item => item.name === name);
+            if(existing) { existing.qty++; } 
+            else { cart.push({ name, price, qty: 1 }); }
+            updateCartUI();
+            toggleCart();
+        }
+
+        function updateCartUI() {
+            document.getElementById('cartCount').innerText = cart.reduce((sum, item) => sum + item.qty, 0);
+            const container = document.getElementById('cartItems');
+            container.innerHTML = '';
+            let total = 0;
+
+            if(cart.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 py-8">Your cart is empty.</p>`;
+            }
+
+            cart.forEach((item, index) => {
+                total += item.price * item.qty;
+                container.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        <div>
+                            <h6 class="font-semibold text-sm">${item.name}</h6>
+                            <p class="text-xs text-gray-500">৳${item.price} x ${item.qty}</p>
+                        </div>
+                        <button onclick="cart.splice(${index},1); updateCartUI();" class="text-red-500 text-xs font-semibold hover:underline">Remove</button>
+                    </div>
+                `;
+            });
+            document.getElementById('cartTotal').innerText = `৳${total.toFixed(2)}`;
+        }
+
+        // Place Order
+        async function placeOrder() {
+            if(cart.length === 0) return alert("Your cart is empty!");
+            const name = document.getElementById('custName').value.trim();
+            const mobile = document.getElementById('custMobile').value.trim();
+            const address = document.getElementById('custAddress').value.trim();
+
+            if(!name || !mobile || !address) { alert("Please fill up all contact details!"); return; }
+
+            const total_amount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+            const { data, error } = await supabaseClient.from('orders').insert([{
+                vendor_id: currentVendorId,
+                customer_id: currentCustomer ? currentCustomer.id : null,
+                customer_name: name,
+                customer_phone: mobile,
+                vendor_name: currentVendorName,
+                items: cart,
+                amount: total_amount,
+                delivery_address: address,
+                status: 'Pending',
+                time: new Date().toISOString()
+            }]).select();
+
+            if(error) {
+                alert("Error placing order: " + error.message);
             } else {
-                document.getElementById('stat-dishes').innerText = '0';
-                dishesGrid.innerHTML = '<p class="text-gray-400 col-span-full text-center py-6">No menu items added yet.</p>';
+                alert("Order placed successfully! Vendor will review your order.");
+                cart = [];
+                updateCartUI();
+                toggleCart();
+                loadCustomerOrders();
             }
         }
 
-        async function acceptOrder(orderId) {
-            await supabaseClient.from('orders').update({
-                status: 'Accepted',
-                vendor_lat: currentVendor ? currentVendor.latitude : 23.7910,
-                vendor_long: currentVendor ? currentVendor.longitude : 90.4060
-            }).eq('id', orderId);
+        async function loadCustomerOrders() {
+            const container = document.getElementById('customer-orders-list');
+            container.innerHTML = '';
 
-            alert("Order Accepted! System is searching for nearby active riders.");
-            loadVendorStoreData();
-        }
-
-        async function rejectOrder(orderId) {
-            await supabaseClient.from('orders').update({ status: 'Rejected' }).eq('id', orderId);
-            alert("Order Rejected.");
-            loadVendorStoreData();
-        }
-
-        const closeModal = () => document.getElementById('dish-modal').classList.add('hidden');
-        document.getElementById('open-add-dish-btn').onclick = () => document.getElementById('dish-modal').classList.remove('hidden');
-        document.getElementById('close-modal-btn').onclick = closeModal;
-        document.getElementById('close-modal-btn-2').onclick = closeModal;
-
-        document.getElementById('save-dish-btn').onclick = async () => {
-            const name = document.getElementById('dish-name').value.trim();
-            const price = Number(document.getElementById('dish-price').value);
-            const category = document.getElementById('dish-cat').value.trim();
-            const description = document.getElementById('dish-desc').value.trim();
-            const fileInput = document.getElementById('dish-img-file');
-
-            if (!name || !price || !currentVendor) return alert('Please enter Dish Name and Price!');
-
-            let finalImgUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c';
-            let storagePath = `${currentVendor.storage_folder || 'vendors/vendor_' + currentVendor.id + '/'}${Date.now()}_dish.jpg`;
-
-            if (fileInput.files && fileInput.files[0]) {
-                const folder = currentVendor.storage_folder || `vendors/vendor_${currentVendor.id}/`;
-                const processed = await processImageFileUpload(fileInput.files[0], folder);
-                if (processed && processed.url) {
-                    finalImgUrl = processed.url;
-                    storagePath = processed.path;
-                }
+            let query = supabaseClient.from('orders').select('*').order('id', { ascending: false });
+            if (currentCustomer) {
+                query = query.eq('customer_phone', currentCustomer.phone);
             }
 
-            const { error } = await supabaseClient.from('menus').insert([{
-                vendor_id: currentVendor.id,
-                name, price, category,
-                image_url: finalImgUrl,
-                storage_path: storagePath,
-                description, available: true
-            }]);
+            const { data: oData } = await query;
 
-            if (error) { alert("Error adding dish: " + error.message); } 
-            else { closeModal(); loadVendorStoreData(); }
-        };
+            if (!oData || oData.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 py-4 text-center">No recent orders found.</p>';
+                return;
+            }
 
-        checkVendorSession();
+            oData.forEach(o => {
+                let badgeClass = 'bg-amber-100 text-amber-800';
+                if (o.status === 'Accepted' || o.status === 'Preparing') badgeClass = 'bg-blue-100 text-blue-800';
+                if (o.status === 'Out for Delivery') badgeClass = 'bg-purple-100 text-purple-800';
+                if (o.status === 'Delivered') badgeClass = 'bg-emerald-100 text-emerald-800';
+                if (o.status === 'Rejected') badgeClass = 'bg-red-100 text-red-800';
+
+                const div = document.createElement('div');
+                div.className = 'py-3 flex justify-between items-center';
+                div.innerHTML = `
+                    <div>
+                        <p class="font-bold text-gray-800">Order #${o.id} - ${o.vendor_name || 'Restaurant'}</p>
+                        <p class="text-xs text-gray-500">${o.delivery_address || ''}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-bold text-orange-600 block">৳${o.amount}</span>
+                        <span class="${badgeClass} text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-1">${o.status}</span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        checkCustomerAuth();
+        fetchAppData();
     </script>
 </body>
 </html>
