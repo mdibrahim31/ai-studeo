@@ -1,7 +1,9 @@
 {
   "name": "Food Delivery Platform",
   "description": "Multi-portal food delivery ecosystem with Customer, Vendor, Rider, and Admin single-file HTML sites connected to Supabase.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "geolocation"
+  ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]

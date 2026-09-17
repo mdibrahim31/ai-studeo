@@ -21,52 +21,134 @@
             <h1 class="text-2xl font-bold text-orange-500 flex items-center gap-2">
                 <i data-lucide="bike"></i> FoodHub Rider Portal
             </h1>
-            <div class="flex items-center gap-3">
-                <select id="rider-select" class="bg-orange-50 border border-orange-200 text-orange-600 font-semibold px-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <option value="">Select Rider Profile</option>
-                </select>
+            <div id="rider-header-user" class="hidden items-center gap-3">
+                <div class="text-right">
+                    <p id="nav-rider-name" class="font-bold text-sm text-gray-800">Rider Name</p>
+                    <p id="nav-rider-phone" class="text-xs text-gray-500">01700000000</p>
+                </div>
+                <button onclick="logoutRider()" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+                </button>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-8 flex-grow space-y-6 w-full">
 
-        <!-- GPS Location & Duty Panel -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <div class="flex justify-between items-center">
+        <!-- AUTH CONTAINER -->
+        <div id="rider-auth-container" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-md border border-gray-100 space-y-6">
+            <div class="flex bg-gray-100 p-1 rounded-xl">
+                <button id="tab-rider-login" onclick="switchRiderAuth('login')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-orange-600 bg-white shadow-xs">
+                    Login
+                </button>
+                <button id="tab-rider-reg" onclick="switchRiderAuth('register')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500">
+                    Register Rider
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="rider-login-form" onsubmit="handleRiderLogin(event)" class="space-y-4">
                 <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <i data-lucide="navigation" class="text-orange-500"></i> Rider GPS & Duty Status
+                    <i data-lucide="log-in" class="text-orange-500"></i> Rider Login
                 </h2>
-                <span id="duty-badge" class="bg-gray-100 text-gray-600 font-semibold text-xs px-3 py-1 rounded-full">Duty: Offline</span>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="text-xs font-semibold text-gray-600">Live Latitude</label>
-                    <input id="rider-lat" type="number" step="0.0001" value="23.7910" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
+                    <label class="text-xs font-semibold text-gray-600">Phone Number</label>
+                    <input type="text" id="r-login-phone" required placeholder="01700000000" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
                 </div>
                 <div>
-                    <label class="text-xs font-semibold text-gray-600">Live Longitude</label>
-                    <input id="rider-long" type="number" step="0.0001" value="90.4060" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
+                    <label class="text-xs font-semibold text-gray-600">Password</label>
+                    <input type="password" id="r-login-pass" required placeholder="••••••••" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
                 </div>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-3 pt-2">
-                <button id="toggle-duty-btn" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20">
-                    <i data-lucide="power"></i> Toggle Online / Offline
+                <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition shadow-md shadow-orange-500/20">
+                    Login & Start Shift
                 </button>
-                <button id="update-gps-btn" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-orange-500/20">
-                    <i data-lucide="map-pin"></i> Update GPS Location
+            </form>
+
+            <!-- Register Form -->
+            <form id="rider-reg-form" onsubmit="handleRiderRegister(event)" class="hidden space-y-4">
+                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="bike" class="text-orange-500"></i> New Rider Registration
+                </h2>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600">Full Name</label>
+                    <input type="text" id="r-reg-name" required placeholder="Karim Hossain" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600">Phone Number (Login ID)</label>
+                    <input type="text" id="r-reg-phone" required placeholder="01700000000" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600">Password</label>
+                    <input type="password" id="r-reg-pass" required placeholder="••••••••" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600">Vehicle Type</label>
+                    <select id="r-reg-vehicle" class="w-full mt-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500 font-medium">
+                        <option value="Motorbike">Motorbike</option>
+                        <option value="Bicycle">Bicycle</option>
+                        <option value="Scooter">Scooter</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition shadow-md shadow-orange-500/20">
+                    Create Rider Account
                 </button>
-            </div>
+            </form>
         </div>
 
-        <!-- Available Delivery Requests -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <i data-lucide="package" class="text-orange-500"></i> Available Delivery Requests
-            </h2>
-            <div id="deliveries-list" class="space-y-3">
-                <p class="text-gray-400 text-center py-6">Select a rider profile above to view available deliveries.</p>
+        <!-- RIDER DASHBOARD -->
+        <div id="rider-dashboard" class="hidden space-y-6">
+
+            <!-- Live GPS Status & Duty Control Panel -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <i data-lucide="navigation" class="text-orange-500"></i> Continuous GPS Tracker
+                    </h2>
+                    <span id="duty-badge" class="bg-gray-100 text-gray-600 font-bold text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                        <i data-lucide="power" class="w-3.5 h-3.5"></i> Status: Offline
+                    </span>
+                </div>
+
+                <p class="text-xs text-gray-500">
+                    When you click <strong>"Go Online"</strong>, your live location will update continuously in the database every 5 seconds to match nearby vendor delivery requests within allowed distance radius.
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600">Current Latitude</label>
+                        <input id="rider-lat" type="number" step="0.0001" value="23.7910" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm focus:outline-orange-500">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600">Current Longitude</label>
+                        <input id="rider-long" type="number" step="0.0001" value="90.4060" class="w-full mt-1 px-3 py-2.5 rounded-xl border text-sm focus:outline-orange-500">
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button id="toggle-online-btn" onclick="toggleOnlineDuty()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20">
+                        <i data-lucide="radio" class="w-4 h-4"></i> Go Online & Request Location Permission
+                    </button>
+                    <button id="toggle-offline-btn" onclick="goOfflineDuty()" class="hidden flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                        <i data-lucide="power" class="w-4 h-4"></i> Go Offline
+                    </button>
+                </div>
             </div>
+
+            <!-- Available Near Requests -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <i data-lucide="package" class="text-orange-500"></i> Nearby Delivery Requests
+                    </h2>
+                    <span id="radius-badge" class="bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full">
+                        Admin Max Radius: 5 km
+                    </span>
+                </div>
+                <div id="deliveries-list" class="space-y-3">
+                    <p class="text-gray-400 text-center py-6">Turn Online above to scan nearby orders within allowed radius.</p>
+                </div>
+            </div>
+
         </div>
 
     </main>
@@ -81,91 +163,260 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkcXlvbXBrZm1ub2NwaWhmemRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMDkxOTIsImV4cCI6MjEwNDg4NTE5Mn0.4gmwMruyf54ZdXAADEAa9noLZD5JMFyLOzrszUIMVns';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let riders = [];
-        let currentRiderId = null;
+        let currentRider = null;
+        let gpsTimer = null;
+        let adminMaxRadiusKm = 5; // default 5 km
 
         lucide.createIcons();
 
-        async function loadRiders() {
-            const { data } = await supabaseClient.from('riders').select('*');
-            const select = document.getElementById('rider-select');
-            select.innerHTML = '<option value="">Select Rider Profile</option>';
+        // Calculate Distance using Haversine Formula
+        function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+            if (!lat1 || !lon1 || !lat2 || !lon2) return 9999;
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
 
-            if (data) {
-                riders = data;
-                data.forEach(r => {
-                    const opt = document.createElement('option');
-                    opt.value = r.id;
-                    opt.innerText = r.name + ' (' + (r.phone || 'No phone') + ')';
-                    select.appendChild(opt);
-                });
+        function checkRiderSession() {
+            const saved = localStorage.getItem('foodhub_active_rider');
+            if (saved) {
+                try {
+                    currentRider = JSON.parse(saved);
+                    showRiderDashboard();
+                } catch(e) {
+                    localStorage.removeItem('foodhub_active_rider');
+                    showRiderAuth();
+                }
+            } else {
+                showRiderAuth();
             }
         }
 
-        document.getElementById('rider-select').addEventListener('change', e => {
-            currentRiderId = Number(e.target.value);
-            if (currentRiderId) {
-                const r = riders.find(x => x.id === currentRiderId);
-                if (r) {
-                    document.getElementById('duty-badge').innerText = 'Duty: ' + r.status;
-                    document.getElementById('rider-lat').value = r.live_lat || 23.7910;
-                    document.getElementById('rider-long').value = r.live_long || 90.4060;
-                }
-                loadOrders();
+        function switchRiderAuth(tab) {
+            if (tab === 'login') {
+                document.getElementById('rider-login-form').classList.remove('hidden');
+                document.getElementById('rider-reg-form').classList.add('hidden');
+                document.getElementById('tab-rider-login').className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-orange-600 bg-white shadow-xs';
+                document.getElementById('tab-rider-reg').className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500';
+            } else {
+                document.getElementById('rider-login-form').classList.add('hidden');
+                document.getElementById('rider-reg-form').classList.remove('hidden');
+                document.getElementById('tab-rider-reg').className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-orange-600 bg-white shadow-xs';
+                document.getElementById('tab-rider-login').className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500';
             }
-        });
+        }
 
-        async function loadOrders() {
-            const { data } = await supabaseClient.from('orders').select('*');
+        function showRiderAuth() {
+            document.getElementById('rider-auth-container').classList.remove('hidden');
+            document.getElementById('rider-dashboard').classList.add('hidden');
+            document.getElementById('rider-header-user').classList.add('hidden');
+            document.getElementById('rider-header-user').classList.remove('flex');
+        }
+
+        function showRiderDashboard() {
+            document.getElementById('rider-auth-container').classList.add('hidden');
+            document.getElementById('rider-dashboard').classList.remove('hidden');
+            document.getElementById('rider-header-user').classList.remove('hidden');
+            document.getElementById('rider-header-user').classList.add('flex');
+
+            document.getElementById('nav-rider-name').innerText = currentRider.name;
+            document.getElementById('nav-rider-phone').innerText = currentRider.phone || '';
+
+            if (currentRider.status === 'Online') {
+                setOnlineUI();
+            } else {
+                setOfflineUI();
+            }
+            fetchAdminSettingsAndOrders();
+        }
+
+        async function handleRiderRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('r-reg-name').value.trim();
+            const phone = document.getElementById('r-reg-phone').value.trim();
+            const password = document.getElementById('r-reg-pass').value.trim();
+            const vehicle = document.getElementById('r-reg-vehicle').value;
+
+            const { data, error } = await supabaseClient.from('riders').insert([{
+                name, phone, password, vehicle_type: vehicle, status: 'Offline', live_lat: 23.7910, live_long: 90.4060
+            }]).select();
+
+            if (error) return alert("Registration Notice: " + error.message);
+
+            if (data && data.length > 0) {
+                currentRider = data[0];
+                localStorage.setItem('foodhub_active_rider', JSON.stringify(currentRider));
+                showRiderDashboard();
+            }
+        }
+
+        async function handleRiderLogin(e) {
+            e.preventDefault();
+            const phone = document.getElementById('r-login-phone').value.trim();
+            const password = document.getElementById('r-login-pass').value.trim();
+
+            const { data } = await supabaseClient.from('riders').select('*').eq('phone', phone);
+            if (!data || data.length === 0) return alert("Rider account not found!");
+
+            const user = data.find(r => r.password === password);
+            if (!user) return alert("Incorrect password!");
+
+            currentRider = user;
+            localStorage.setItem('foodhub_active_rider', JSON.stringify(currentRider));
+            showRiderDashboard();
+        }
+
+        function logoutRider() {
+            goOfflineDuty();
+            localStorage.removeItem('foodhub_active_rider');
+            currentRider = null;
+            showRiderAuth();
+        }
+
+        // GEOLOCATION CONTINUOUS 5s TRACKER
+        function toggleOnlineDuty() {
+            if (!currentRider) return;
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        document.getElementById('rider-lat').value = pos.coords.latitude.toFixed(4);
+                        document.getElementById('rider-long').value = pos.coords.longitude.toFixed(4);
+                        startGPSLoop();
+                    },
+                    (err) => {
+                        alert("Geolocation permission note: Using manual/default coordinates (" + err.message + ").");
+                        startGPSLoop();
+                    }
+                );
+            } else {
+                startGPSLoop();
+            }
+        }
+
+        async function startGPSLoop() {
+            currentRider.status = 'Online';
+            localStorage.setItem('foodhub_active_rider', JSON.stringify(currentRider));
+            setOnlineUI();
+
+            updateGPSInDB();
+            if (gpsTimer) clearInterval(gpsTimer);
+            gpsTimer = setInterval(updateGPSInDB, 5000); // every 5 seconds
+        }
+
+        async function updateGPSInDB() {
+            if (!currentRider || currentRider.status !== 'Online') return;
+
+            const lat = Number(document.getElementById('rider-lat').value) || 23.7910;
+            const long = Number(document.getElementById('rider-long').value) || 90.4060;
+
+            await supabaseClient.from('riders').update({
+                status: 'Online',
+                live_lat: lat,
+                live_long: long
+            }).eq('id', currentRider.id);
+
+            fetchAdminSettingsAndOrders();
+        }
+
+        async function goOfflineDuty() {
+            if (gpsTimer) clearInterval(gpsTimer);
+            if (currentRider) {
+                currentRider.status = 'Offline';
+                localStorage.setItem('foodhub_active_rider', JSON.stringify(currentRider));
+                await supabaseClient.from('riders').update({ status: 'Offline' }).eq('id', currentRider.id);
+            }
+            setOfflineUI();
+        }
+
+        function setOnlineUI() {
+            document.getElementById('duty-badge').innerText = 'Status: Online';
+            document.getElementById('duty-badge').className = 'bg-emerald-100 text-emerald-800 font-bold text-xs px-3 py-1 rounded-full flex items-center gap-1';
+            document.getElementById('toggle-online-btn').classList.add('hidden');
+            document.getElementById('toggle-offline-btn').classList.remove('hidden');
+        }
+
+        function setOfflineUI() {
+            document.getElementById('duty-badge').innerText = 'Status: Offline';
+            document.getElementById('duty-badge').className = 'bg-gray-100 text-gray-600 font-bold text-xs px-3 py-1 rounded-full flex items-center gap-1';
+            document.getElementById('toggle-online-btn').classList.remove('hidden');
+            document.getElementById('toggle-offline-btn').classList.add('hidden');
+        }
+
+        async function fetchAdminSettingsAndOrders() {
+            // Fetch max dispatch radius from settings table or fallback
+            const { data: sData } = await supabaseClient.from('system_settings').select('*').limit(1);
+            if (sData && sData.length > 0 && sData[0].max_radius_km) {
+                adminMaxRadiusKm = sData[0].max_radius_km;
+            } else {
+                adminMaxRadiusKm = 5;
+            }
+            document.getElementById('radius-badge').innerText = `Admin Max Radius: ${adminMaxRadiusKm} km`;
+
+            // Fetch Accepted / Active Orders
+            const { data: orders } = await supabaseClient.from('orders').select('*').in('status', ['Accepted', 'Preparing']);
             const container = document.getElementById('deliveries-list');
             container.innerHTML = '';
 
-            if (data && data.length > 0) {
-                data.forEach(o => {
-                    const div = document.createElement('div');
-                    div.className = 'p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2 flex flex-col sm:flex-row justify-between items-start sm:items-center';
-                    div.innerHTML = `
-                        <div>
-                            <p class="font-bold text-gray-800 text-sm">Order #${o.id} - ${o.vendor_name || 'Vendor'}</p>
-                            <p class="text-xs text-gray-500">Customer: ${o.customer_name || 'N/A'} • Address: ${o.delivery_address || 'N/A'}</p>
-                            <p class="text-orange-600 font-bold text-sm">৳${o.amount}</p>
-                        </div>
-                        <button onclick="acceptOrder(${o.id})" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-xl text-xs transition shadow-md shadow-orange-500/20">
-                            Accept Delivery
-                        </button>
-                    `;
-                    container.appendChild(div);
+            const currentLat = Number(document.getElementById('rider-lat').value) || 23.7910;
+            const currentLong = Number(document.getElementById('rider-long').value) || 90.4060;
+
+            if (orders && orders.length > 0) {
+                let foundNearCount = 0;
+                orders.forEach(o => {
+                    const vLat = o.vendor_lat || 23.7910;
+                    const vLong = o.vendor_long || 90.4060;
+                    const distanceKm = calculateDistanceKm(vLat, vLong, currentLat, currentLong);
+
+                    if (distanceKm <= adminMaxRadiusKm) {
+                        foundNearCount++;
+                        const div = document.createElement('div');
+                        div.className = 'p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-2 flex flex-col sm:flex-row justify-between items-start sm:items-center';
+                        div.innerHTML = `
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-bold text-gray-800 text-sm">Order #${o.id} - ${o.vendor_name || 'Vendor'}</p>
+                                    <span class="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                        📍 ${distanceKm.toFixed(1)} km away
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Customer: ${o.customer_name || 'N/A'} • Address: ${o.delivery_address || 'N/A'}</p>
+                                <p class="text-orange-600 font-bold text-sm mt-0.5">Amount: ৳${o.amount}</p>
+                            </div>
+                            <button onclick="acceptDelivery(${o.id})" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-xl text-xs transition shadow-md shadow-orange-500/20 mt-2 sm:mt-0">
+                                Accept Delivery Request
+                            </button>
+                        `;
+                        container.appendChild(div);
+                    }
                 });
+
+                if (foundNearCount === 0) {
+                    container.innerHTML = `<p class="text-gray-400 text-center py-6">No delivery requests found within Admin max radius (${adminMaxRadiusKm} km).</p>`;
+                }
             } else {
-                container.innerHTML = '<p class="text-gray-400 text-center py-6">No active delivery requests.</p>';
+                container.innerHTML = '<p class="text-gray-400 text-center py-6">No accepted orders currently searching for delivery riders.</p>';
             }
         }
 
-        async function acceptOrder(orderId) {
-            if (!currentRiderId) return alert('Select rider profile first!');
-            await supabaseClient.from('orders').update({ rider_id: currentRiderId, status: 'Preparing' }).eq('id', orderId);
-            alert('Order accepted!');
-            loadOrders();
+        async function acceptDelivery(orderId) {
+            if (!currentRider) return;
+            await supabaseClient.from('orders').update({
+                rider_id: currentRider.id,
+                rider_name: currentRider.name,
+                status: 'Out for Delivery'
+            }).eq('id', orderId);
+
+            alert('Delivery accepted! Order status changed to Out for Delivery.');
+            fetchAdminSettingsAndOrders();
         }
 
-        document.getElementById('toggle-duty-btn').onclick = async () => {
-            if (!currentRiderId) return alert('Select rider profile first!');
-            const r = riders.find(x => x.id === currentRiderId);
-            const nextStatus = r && r.status === 'Online' ? 'Offline' : 'Online';
-            await supabaseClient.from('riders').update({ status: nextStatus }).eq('id', currentRiderId);
-            document.getElementById('duty-badge').innerText = 'Duty: ' + nextStatus;
-            loadRiders();
-        };
-
-        document.getElementById('update-gps-btn').onclick = async () => {
-            if (!currentRiderId) return alert('Select rider profile first!');
-            const lat = Number(document.getElementById('rider-lat').value);
-            const long = Number(document.getElementById('rider-long').value);
-            await supabaseClient.from('riders').update({ live_lat: lat, live_long: long }).eq('id', currentRiderId);
-            alert('GPS location updated!');
-        };
-
-        loadRiders();
+        checkRiderSession();
     </script>
 </body>
 </html>
