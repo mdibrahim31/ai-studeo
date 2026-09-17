@@ -1,194 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Food Delivery - Admin Portal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodHub - Admin Dashboard</title>
+    <!-- Google Fonts, Tailwind CSS, Lucide & Supabase JS -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen pb-16">
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col justify-between">
 
-  <!-- Header -->
-  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-20">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center font-bold text-xl text-slate-950">🛡️</div>
-        <div>
-          <h1 class="font-bold text-lg leading-tight">FoodExpress Admin Dashboard</h1>
-          <p class="text-xs text-slate-400">System Control & Database Management</p>
+    <!-- Navigation Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-orange-500 flex items-center gap-2">
+                <i data-lucide="shield-check"></i> FoodHub Admin Dashboard
+            </h1>
+            <span class="bg-orange-100 text-orange-600 text-xs font-bold px-3 py-1 rounded-full">System Control</span>
         </div>
-      </div>
-    </div>
-  </header>
+    </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow space-y-6 w-full">
 
-    <!-- Supabase Connection Config Bar -->
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs space-y-2">
-      <div class="flex justify-between items-center">
-        <span class="font-bold text-amber-900">⚡ Connect Your Supabase Database</span>
-        <span id="conn-status" class="font-bold text-rose-600">Disconnected</span>
-      </div>
-      <p class="text-[11px] text-amber-800">You can paste your Supabase credentials below or edit the JS variables in the code:</p>
-      <div class="flex flex-col sm:flex-row gap-2">
-        <input id="sb-url" type="text" placeholder="Supabase URL (https://xyz.supabase.co)" class="p-2 bg-white border border-amber-200 rounded flex-1">
-        <input id="sb-key" type="password" placeholder="Supabase Anon Key" class="p-2 bg-white border border-amber-200 rounded flex-1">
-        <button id="save-cfg-btn" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded">Connect DB</button>
-      </div>
-    </div>
+        <!-- Overview Stats Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div class="w-12 h-12 bg-orange-100 text-orange-500 rounded-xl flex items-center justify-center font-bold text-xl">
+                    <i data-lucide="store"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 font-medium">Total Vendors</p>
+                    <p id="stat-vendors" class="text-2xl font-bold text-gray-800">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div class="w-12 h-12 bg-emerald-100 text-emerald-500 rounded-xl flex items-center justify-center font-bold text-xl">
+                    <i data-lucide="bike"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 font-medium">Active Riders</p>
+                    <p id="stat-riders" class="text-2xl font-bold text-gray-800">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-100 text-blue-500 rounded-xl flex items-center justify-center font-bold text-xl">
+                    <i data-lucide="shopping-cart"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 font-medium">System Orders</p>
+                    <p id="stat-orders" class="text-2xl font-bold text-gray-800">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div class="w-12 h-12 bg-amber-100 text-amber-500 rounded-xl flex items-center justify-center font-bold text-xl">
+                    <i data-lucide="phone"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 font-medium">Helplines</p>
+                    <p id="stat-helplines" class="text-2xl font-bold text-gray-800">0</p>
+                </div>
+            </div>
+        </div>
 
-    <!-- Overview Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <span class="text-slate-400 font-semibold">Total Vendors</span>
-        <p id="stat-vendors" class="text-xl font-bold text-slate-900">0</p>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <span class="text-slate-400 font-semibold">Active Riders</span>
-        <p id="stat-riders" class="text-xl font-bold text-emerald-600">0</p>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <span class="text-slate-400 font-semibold">Total System Orders</span>
-        <p id="stat-orders" class="text-xl font-bold text-indigo-600">0</p>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <span class="text-slate-400 font-semibold">Helplines</span>
-        <p id="stat-helplines" class="text-xl font-bold text-amber-600">0</p>
-      </div>
-    </div>
+        <!-- Live System Orders Table -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <i data-lucide="list-ordered" class="text-orange-500"></i> System Live Orders
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50 font-semibold text-gray-600 border-b">
+                        <tr>
+                            <th class="p-3">Order ID</th>
+                            <th class="p-3">Customer</th>
+                            <th class="p-3">Vendor</th>
+                            <th class="p-3">Address</th>
+                            <th class="p-3">Amount</th>
+                            <th class="p-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-tbody" class="divide-y divide-gray-100">
+                        <tr><td colspan="6" class="p-6 text-center text-gray-400">Loading live orders...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    <!-- Live System Orders Table -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs shadow-xs">
-      <h2 class="font-bold text-slate-900 text-sm">System Live Orders</h2>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-100 font-bold">
-            <tr>
-              <th className="p-2">ID</th>
-              <th className="p-2">Customer</th>
-              <th className="p-2">Vendor</th>
-              <th className="p-2">Amount</th>
-              <th className="p-2">Status</th>
-            </tr>
-          </thead>
-          <tbody id="orders-tbody" class="divide-y divide-slate-100">
-            <tr><td colspan="5" class="p-4 text-center text-slate-400">Connect Supabase to load live orders.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+        <!-- Customer Helpline Management -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 max-w-2xl">
+            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <i data-lucide="headphones" class="text-orange-500"></i> Customer Service Helplines
+            </h2>
+            <div class="flex gap-3">
+                <input id="helpline-phone" type="text" placeholder="e.g. +8801700112233" class="px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-orange-500 flex-1">
+                <button id="add-helpline-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition shadow-md shadow-orange-500/20">Add Helpline</button>
+            </div>
+            <div id="helpline-list" class="divide-y divide-gray-100 pt-2">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
 
-    <!-- Customer Helpline Management -->
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 text-xs shadow-xs max-w-xl">
-      <h2 class="font-bold text-slate-900 text-sm">Manage Customer Service Helplines</h2>
-      <div class="flex gap-2">
-        <input id="helpline-phone" type="text" placeholder="e.g. +8801700112233" class="p-2 bg-slate-50 border rounded-lg flex-1">
-        <button id="add-helpline-btn" class="bg-slate-900 text-white font-bold px-4 py-2 rounded-lg">Add Helpline</button>
-      </div>
-      <div id="helpline-list" class="divide-y divide-slate-100">
-        <!-- Rendered dynamically -->
-      </div>
-    </div>
+    </main>
 
-  </main>
+    <!-- Footer -->
+    <footer class="bg-white border-t py-6 text-center text-gray-500 text-sm">
+        <p>&copy; 2026 FoodHub Admin Dashboard. All rights reserved.</p>
+    </footer>
 
-  <script>
-    // =========================================================================
-    // 🔑 ADD YOUR SUPABASE CREDENTIALS HERE OR USE THE UI INPUTS AT THE TOP
-    // =========================================================================
-    const SUPABASE_URL = "https://kdqyompkfmnocpihfzdj.supabase.co";       // e.g. "https://xyz.supabase.co"
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkcXlvbXBrZm1ub2NwaWhmemRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMDkxOTIsImV4cCI6MjEwNDg4NTE5Mn0.4gmwMruyf54ZdXAADEAa9noLZD5JMFyLOzrszUIMVns";  // e.g. "eyJhbGciOiJIUzI1NiIsIn..."
-    // =========================================================================
+    <script>
+        const SUPABASE_URL = 'https://kdqyompkfmnocpihfzdj.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkcXlvbXBrZm1ub2NwaWhmemRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMDkxOTIsImV4cCI6MjEwNDg4NTE5Mn0.4gmwMruyf54ZdXAADEAa9noLZD5JMFyLOzrszUIMVns';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let supabaseClient = null;
+        lucide.createIcons();
 
-    const sbUrlInput = document.getElementById('sb-url');
-    const sbKeyInput = document.getElementById('sb-key');
-    const connStatus = document.getElementById('conn-status');
+        async function loadAdminData() {
+            const { data: v } = await supabaseClient.from('vendors').select('*');
+            if (v) document.getElementById('stat-vendors').innerText = v.length;
 
-    sbUrlInput.value = localStorage.getItem('food_sys_supabase_url') || SUPABASE_URL || '';
-    sbKeyInput.value = localStorage.getItem('food_sys_supabase_key') || SUPABASE_ANON_KEY || '';
+            const { data: r } = await supabaseClient.from('riders').select('*');
+            if (r) document.getElementById('stat-riders').innerText = r.length;
 
-    function initSupabase() {
-      const u = sbUrlInput.value.trim();
-      const k = sbKeyInput.value.trim();
+            const { data: o } = await supabaseClient.from('orders').select('*');
+            if (o) {
+                document.getElementById('stat-orders').innerText = o.length;
+                const tbody = document.getElementById('orders-tbody');
+                tbody.innerHTML = '';
+                if (o.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-400">No orders found.</td></tr>';
+                } else {
+                    o.forEach(ord => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-gray-50';
+                        tr.innerHTML = `
+                            <td class="p-3 font-bold text-gray-800">#${ord.id}</td>
+                            <td class="p-3">${ord.customer_name || 'N/A'}</td>
+                            <td class="p-3">${ord.vendor_name || 'N/A'}</td>
+                            <td class="p-3 text-gray-500 text-xs">${ord.delivery_address || 'N/A'}</td>
+                            <td class="p-3 font-bold text-orange-600">৳${ord.amount}</td>
+                            <td class="p-3"><span class="bg-gray-100 font-semibold px-2.5 py-1 rounded-full text-xs text-gray-700">${ord.status}</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            }
 
-      if (u && k) {
-        try {
-          supabaseClient = window.supabase.createClient(u, k);
-          localStorage.setItem('food_sys_supabase_url', u);
-          localStorage.setItem('food_sys_supabase_key', k);
-          connStatus.innerText = 'Connected';
-          connStatus.className = 'font-bold text-emerald-600';
-          loadAdminData();
-        } catch (e) {
-          connStatus.innerText = 'Error';
-          connStatus.className = 'font-bold text-rose-600';
+            const { data: h } = await supabaseClient.from('customer_service').select('*');
+            if (h) {
+                document.getElementById('stat-helplines').innerText = h.length;
+                const list = document.getElementById('helpline-list');
+                list.innerHTML = '';
+                h.forEach(cs => {
+                    const div = document.createElement('div');
+                    div.className = 'py-3 flex justify-between items-center';
+                    div.innerHTML = `
+                        <span class="font-semibold text-gray-800 text-sm">${cs.phone}</span>
+                        <button onclick="deleteHelpline(${cs.id})" class="text-red-500 hover:text-red-700 text-xs font-semibold">Delete</button>
+                    `;
+                    list.appendChild(div);
+                });
+            }
         }
-      }
-    }
 
-    document.getElementById('save-cfg-btn').addEventListener('click', initSupabase);
+        document.getElementById('add-helpline-btn').onclick = async () => {
+            const phone = document.getElementById('helpline-phone').value;
+            if (!phone) return;
+            await supabaseClient.from('customer_service').insert([{ phone }]);
+            document.getElementById('helpline-phone').value = '';
+            loadAdminData();
+        };
 
-    async function loadAdminData() {
-      if (!supabaseClient) return;
+        async function deleteHelpline(id) {
+            await supabaseClient.from('customer_service').delete().eq('id', id);
+            loadAdminData();
+        }
 
-      const { data: v } = await supabaseClient.from('vendors').select('*');
-      if (v) document.getElementById('stat-vendors').innerText = v.length;
-
-      const { data: r } = await supabaseClient.from('riders').select('*');
-      if (r) document.getElementById('stat-riders').innerText = r.length;
-
-      const { data: o } = await supabaseClient.from('orders').select('*');
-      if (o) {
-        document.getElementById('stat-orders').innerText = o.length;
-        const tbody = document.getElementById('orders-tbody');
-        tbody.innerHTML = '';
-        o.forEach(ord => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="p-2 font-bold">#${ord.id}</td>
-            <td class="p-2">${ord.customer_name || 'N/A'}</td>
-            <td class="p-2">${ord.vendor_name || 'N/A'}</td>
-            <td class="p-2 font-bold text-emerald-700">৳${ord.amount}</td>
-            <td class="p-2"><span class="bg-slate-100 font-bold px-2 py-0.5 rounded text-[10px]">${ord.status}</span></td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-
-      const { data: h } = await supabaseClient.from('customer_service').select('*');
-      if (h) {
-        document.getElementById('stat-helplines').innerText = h.length;
-        const list = document.getElementById('helpline-list');
-        list.innerHTML = '';
-        h.forEach(cs => {
-          const div = document.className = 'py-2 flex justify-between items-center';
-          div.innerHTML = `
-            <span class="font-bold">${cs.phone}</span>
-            <button onclick="deleteHelpline(${cs.id})" class="text-rose-600 font-bold">Delete</button>
-          `;
-          list.appendChild(div);
-        });
-      }
-    }
-
-    document.getElementById('add-helpline-btn').onclick = async () => {
-      const phone = document.getElementById('helpline-phone').value;
-      if (!phone || !supabaseClient) return;
-      await supabaseClient.from('customer_service').insert([{ phone }]);
-      document.getElementById('helpline-phone').value = '';
-      loadAdminData();
-    };
-
-    async function deleteHelpline(id) {
-      if (!supabaseClient) return;
-      await supabaseClient.from('customer_service').delete().eq('id', id);
-      loadAdminData();
-    }
-
-    if (sbUrlInput.value && sbKeyInput.value) initSupabase();
-  </script>
+        loadAdminData();
+    </script>
 </body>
 </html>
